@@ -1,0 +1,5 @@
+# Ignorisanje Visual Studio fajlova
+.vs/
+*.vsidx
+*.vscode/
+*.db
