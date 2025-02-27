@@ -35,6 +35,12 @@ public class OrderController {
     public ResponseEntity<Order> createOrder(@RequestBody OrderDTO orderDTO) {
         return ResponseEntity.ok(orderService.createOrder(orderDTO));
     }
+    
+    @PostMapping("/user/{userId}/checkout")
+    public ResponseEntity<Order> checkout(@PathVariable Long userId) {
+        return ResponseEntity.ok(orderService.createOrderFromCart(userId));
+    }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody OrderUpdateDTO orderUpdateDTO) {

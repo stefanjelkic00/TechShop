@@ -1,6 +1,7 @@
 package com.techshop.controller;
 
 import com.techshop.DTO.ProductDTO;
+import com.techshop.DTO.ProductDiscountDTO;
 import com.techshop.DTO.ProductUpdateDTO;
 import com.techshop.model.Product;
 import com.techshop.service.ProductService;
@@ -50,4 +51,12 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+
+
+    @GetMapping("/discounted/{userId}")
+    public ResponseEntity<List<ProductDiscountDTO>> getProductsWithDiscount(@PathVariable Long userId) {
+        return ResponseEntity.ok(productService.getProductsWithDiscount(userId));
+    }
+    
+
 }

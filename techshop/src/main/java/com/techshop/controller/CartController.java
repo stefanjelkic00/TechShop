@@ -29,6 +29,10 @@ public class CartController {
         Optional<Cart> cart = cartService.getCartById(id);
         return cart.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Cart> getCartByUser(@PathVariable Long userId) {
+        return ResponseEntity.ok(cartService.getCartByUserId(userId));
+    }
 
     @PostMapping
     public ResponseEntity<Cart> createCart(@RequestBody CartDTO cartDTO) {

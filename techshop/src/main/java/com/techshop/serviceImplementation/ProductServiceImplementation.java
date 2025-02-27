@@ -1,22 +1,30 @@
 package com.techshop.serviceImplementation;
 
 import com.techshop.DTO.ProductDTO;
+import com.techshop.DTO.ProductDiscountDTO;
 import com.techshop.DTO.ProductUpdateDTO;
 import com.techshop.model.Product;
+import com.techshop.model.User;
 import com.techshop.repository.ProductRepository;
+import com.techshop.repository.UserRepository;
 import com.techshop.service.ProductService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImplementation implements ProductService {
 
     private final ProductRepository productRepository;
-
-    public ProductServiceImplementation(ProductRepository productRepository) {
+    private final UserRepository userRepository;
+    
+    public ProductServiceImplementation(UserRepository userRepository,ProductRepository productRepository) {
         this.productRepository = productRepository;
+        this.userRepository = userRepository; // Dodato!
+
     }
 
     @Override
@@ -65,4 +73,38 @@ public class ProductServiceImplementation implements ProductService {
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
     }
+    
+    
+    @Override
+    public List<ProductDiscountDTO> getProductsWithDiscount(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Product> products = productRepository.findAll();
+
+        return products.stream().map(product -> {
+            BigDecimal discount = getDiscountForUser(user);
+            BigDecimal discountedPrice = product.getPrice().subtract(product.getPrice().multiply(discount));
+
+            return new ProductDiscountDTO(product.getId(), product.getName(), product.getDescription(),
+                    product.getPrice(), discountedPrice, product.getImageUrl(), product.getCategory());
+        }).collect(Collectors.toList());
+    }
+
+
+    private BigDecimal getDiscountForUser(User user) {
+        switch (user.getCustomerType()) {
+            case VIP:
+                return BigDecimal.valueOf(0.30); // 30% popust
+            case PLATINUM:
+                return BigDecimal.valueOf(0.20); // 20% popust
+            case PREMIUM:
+                return BigDecimal.valueOf(0.10); // 10% popust
+            default:
+                return BigDecimal.ZERO; // Nema popusta za REGULAR korisnike
+        }
+    }
+
+    
+    
 }

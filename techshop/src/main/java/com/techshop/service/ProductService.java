@@ -1,6 +1,7 @@
 package com.techshop.service;
 
 import com.techshop.DTO.ProductDTO;
+import com.techshop.DTO.ProductDiscountDTO;
 import com.techshop.DTO.ProductUpdateDTO;
 import com.techshop.model.Product;
 
@@ -13,4 +14,7 @@ public interface ProductService {
     Product saveProduct(ProductDTO product);
     Product updateProduct(ProductUpdateDTO product);
     void deleteProduct(Long id);
+    
+    List<ProductDiscountDTO> getProductsWithDiscount(Long userId);
+
 }

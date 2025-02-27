@@ -28,4 +28,15 @@ public class OrderItem {
 
     private int quantity;
     private BigDecimal price;
+    
+    
+    public OrderItem(Order order, Product product, int quantity) {
+        this.order = order;
+        this.product = product;
+        this.quantity = quantity;
+        this.price = product.getPrice(); // Dodaj cenu proizvoda
+    }
+
+    
+    
 }

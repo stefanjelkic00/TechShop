@@ -35,7 +35,11 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private CustomerType customerType = CustomerType.REGULAR;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Order> orders;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Cart cart;
+
 }

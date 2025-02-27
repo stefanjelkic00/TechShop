@@ -33,13 +33,5 @@ public class Product {
 
     private String imageUrl;
 
-    // Dodajemo konstruktor koji prima ProductDTO
-    public Product(ProductDTO productDTO) {
-        this.name = productDTO.getName();
-        this.description = productDTO.getDescription();
-        this.price = productDTO.getPrice();
-        this.stockQuantity = productDTO.getStockQuantity();
-        this.imageUrl = productDTO.getImageUrl();
-        this.category = productDTO.getCategory();
-    }
+ 
 }

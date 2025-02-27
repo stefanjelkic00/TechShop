@@ -31,6 +31,11 @@ public class CartServiceImplementation implements CartService {
     public Optional<Cart> getCartById(Long id) {
         return cartRepository.findById(id);
     }
+    
+    public Cart getCartByUserId(Long userId) {
+        return cartRepository.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("Cart not found for user: " + userId));
+    }
 
     @Override
     public Cart createCart(CartDTO cartDTO) {

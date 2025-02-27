@@ -40,6 +40,8 @@ public class Order {
     @Builder.Default
     private Date createdAt = new Date();
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems;
+
 }
