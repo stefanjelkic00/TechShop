@@ -1,4 +1,4 @@
-package com.techshop.models;
+package com.techshop.model;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -33,6 +33,7 @@ public class User {
     private Role role;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private CustomerType customerType = CustomerType.REGULAR;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)

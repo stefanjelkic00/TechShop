@@ -1,4 +1,4 @@
-package com.techshop.models;
+package com.techshop.model;
 import com.techshop.enums.OrderStatus;
 
 import jakarta.persistence.*;
@@ -29,6 +29,7 @@ public class Order {
     private BigDecimal totalPrice;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private OrderStatus orderStatus = OrderStatus.PENDING;
 
     @OneToOne(cascade = CascadeType.ALL)
@@ -36,6 +37,7 @@ public class Order {
     private Address address;
 
     @Temporal(TemporalType.TIMESTAMP)
+    @Builder.Default
     private Date createdAt = new Date();
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)

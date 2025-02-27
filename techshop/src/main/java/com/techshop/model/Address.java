@@ -1,4 +1,4 @@
-package com.techshop.models;
+package com.techshop.model;
 
 import jakarta.persistence.*;
 import lombok.*;
