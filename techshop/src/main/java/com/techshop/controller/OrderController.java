@@ -1,7 +1,7 @@
 package com.techshop.controller;
 
-import com.techshop.DTO.OrderDTO;
-import com.techshop.DTO.OrderUpdateDTO;
+import com.techshop.dto.OrderDTO;
+import com.techshop.dto.OrderUpdateDTO;
 import com.techshop.model.Order;
 import com.techshop.service.OrderService;
 import org.springframework.http.ResponseEntity;

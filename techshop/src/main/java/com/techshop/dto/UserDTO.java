@@ -1,4 +1,4 @@
-package com.techshop.DTO;
+package com.techshop.dto;
 
 
 import com.techshop.enums.Role;

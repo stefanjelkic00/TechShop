@@ -1,8 +1,8 @@
 package com.techshop.serviceImplementation;
 
-import com.techshop.DTO.ProductDTO;
-import com.techshop.DTO.ProductDiscountDTO;
-import com.techshop.DTO.ProductUpdateDTO;
+import com.techshop.dto.ProductDTO;
+import com.techshop.dto.ProductDiscountDTO;
+import com.techshop.dto.ProductUpdateDTO;
 import com.techshop.model.Product;
 import com.techshop.model.User;
 import com.techshop.repository.ProductRepository;
@@ -39,6 +39,10 @@ public class ProductServiceImplementation implements ProductService {
 
     @Override
     public Product saveProduct(ProductDTO productDTO) {
+        if (productDTO.getStockQuantity() < 0) {
+            throw new RuntimeException("Stock quantity cannot be negative.");
+        }
+
         Product product = new Product();
         product.setName(productDTO.getName());
         product.setDescription(productDTO.getDescription());
@@ -49,13 +53,17 @@ public class ProductServiceImplementation implements ProductService {
 
         return productRepository.save(product);
     }
-    
+
     @Override
     public Product updateProduct(ProductUpdateDTO productUpdateDTO) {
         Optional<Product> existingProduct = productRepository.findById(productUpdateDTO.getId());
 
         if (existingProduct.isPresent()) {
             Product product = existingProduct.get();
+            if (productUpdateDTO.getStockQuantity() < 0) {
+                throw new RuntimeException("Stock quantity cannot be negative.");
+            }
+
             product.setName(productUpdateDTO.getName());
             product.setDescription(productUpdateDTO.getDescription());
             product.setPrice(productUpdateDTO.getPrice());

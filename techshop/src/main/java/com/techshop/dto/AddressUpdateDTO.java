@@ -1,4 +1,4 @@
-package com.techshop.DTO;
+package com.techshop.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AddressDTO {
+public class AddressUpdateDTO {
+    private Long id;
     private String street;
     private String city;
     private String postalCode;

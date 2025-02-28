@@ -1,7 +1,7 @@
 package com.techshop.serviceImplementation;
 
-import com.techshop.DTO.OrderItemDTO;
-import com.techshop.DTO.OrderItemUpdateDTO;
+import com.techshop.dto.OrderItemDTO;
+import com.techshop.dto.OrderItemUpdateDTO;
 import com.techshop.model.Order;
 import com.techshop.model.OrderItem;
 import com.techshop.model.Product;

@@ -3,8 +3,6 @@ package com.techshop.model;
 import jakarta.persistence.*;
 import lombok.*;
 import com.techshop.enums.Category;
-import com.techshop.DTO.ProductDTO;
-
 import java.math.BigDecimal;
 
 @Entity

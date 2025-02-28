@@ -1,7 +1,7 @@
 package com.techshop.serviceImplementation;
 
-import com.techshop.DTO.CartItemDTO;
-import com.techshop.DTO.CartItemUpdateDTO;
+import com.techshop.dto.CartItemDTO;
+import com.techshop.dto.CartItemUpdateDTO;
 import com.techshop.model.Cart;
 import com.techshop.model.CartItem;
 import com.techshop.model.Product;

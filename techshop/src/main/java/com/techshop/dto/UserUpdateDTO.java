@@ -1,4 +1,4 @@
-package com.techshop.DTO;
+package com.techshop.dto;
 
 
 import com.techshop.enums.CustomerType;
@@ -20,6 +20,7 @@ public class UserUpdateDTO {
     private String email;
     private CustomerType customerType;
     private Role role;
+    private String password; // Dodajemo polje za lozinku
 
 
 }

@@ -1,7 +1,7 @@
 package com.techshop.controller;
 
-import com.techshop.DTO.CartItemDTO;
-import com.techshop.DTO.CartItemUpdateDTO;
+import com.techshop.dto.CartItemDTO;
+import com.techshop.dto.CartItemUpdateDTO;
 import com.techshop.model.CartItem;
 import com.techshop.service.CartItemService;
 import org.springframework.http.ResponseEntity;

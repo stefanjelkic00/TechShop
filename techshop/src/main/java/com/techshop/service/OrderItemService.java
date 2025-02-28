@@ -1,7 +1,7 @@
 package com.techshop.service;
 
-import com.techshop.DTO.OrderItemDTO;
-import com.techshop.DTO.OrderItemUpdateDTO;
+import com.techshop.dto.OrderItemDTO;
+import com.techshop.dto.OrderItemUpdateDTO;
 import com.techshop.model.OrderItem;
 
 import java.util.List;

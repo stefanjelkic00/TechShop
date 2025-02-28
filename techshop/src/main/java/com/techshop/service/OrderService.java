@@ -1,7 +1,7 @@
 package com.techshop.service;
 
-import com.techshop.DTO.OrderDTO;
-import com.techshop.DTO.OrderUpdateDTO;
+import com.techshop.dto.OrderDTO;
+import com.techshop.dto.OrderUpdateDTO;
 import com.techshop.model.Cart;
 import com.techshop.model.Order;
 

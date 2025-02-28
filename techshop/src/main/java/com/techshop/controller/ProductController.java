@@ -1,8 +1,8 @@
 package com.techshop.controller;
 
-import com.techshop.DTO.ProductDTO;
-import com.techshop.DTO.ProductDiscountDTO;
-import com.techshop.DTO.ProductUpdateDTO;
+import com.techshop.dto.ProductDTO;
+import com.techshop.dto.ProductDiscountDTO;
+import com.techshop.dto.ProductUpdateDTO;
 import com.techshop.model.Product;
 import com.techshop.service.ProductService;
 import org.springframework.http.ResponseEntity;

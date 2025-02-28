@@ -1,6 +1,6 @@
 package com.techshop.serviceImplementation;
 
-import com.techshop.DTO.CartDTO;
+import com.techshop.dto.CartDTO;
 import com.techshop.model.Cart;
 import com.techshop.model.User;
 import com.techshop.repository.CartRepository;

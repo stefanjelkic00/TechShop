@@ -1,6 +1,6 @@
 package com.techshop.service;
 
-import com.techshop.DTO.CartDTO;
+import com.techshop.dto.CartDTO;
 import com.techshop.model.Cart;
 
 import java.util.List;

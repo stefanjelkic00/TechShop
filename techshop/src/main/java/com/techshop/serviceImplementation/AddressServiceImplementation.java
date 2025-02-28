@@ -1,11 +1,19 @@
 package com.techshop.serviceImplementation;
 
-import com.techshop.DTO.AddressDTO;
-import com.techshop.DTO.AddressUpdateDTO;
+import com.techshop.dto.AddressDTO;
+import com.techshop.dto.AddressUpdateDTO;
 import com.techshop.model.Address;
+import com.techshop.model.Order;
 import com.techshop.repository.AddressRepository;
 import com.techshop.service.AddressService;
+
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.MimeMessageHelper;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -14,9 +22,11 @@ import java.util.Optional;
 public class AddressServiceImplementation implements AddressService {
 
     private final AddressRepository addressRepository;
+    private final JavaMailSender mailSender;
 
-    public AddressServiceImplementation(AddressRepository addressRepository) {
+    public AddressServiceImplementation(AddressRepository addressRepository, JavaMailSender mailSender) {
         this.addressRepository = addressRepository;
+        this.mailSender = mailSender; // Ispravno inicijalizovano
     }
 
     @Override
@@ -60,6 +70,27 @@ public class AddressServiceImplementation implements AddressService {
     public void deleteAddress(Long id) {
         addressRepository.deleteById(id);
     }
+    
+    
+
+    @Override
+    public void sendOrderConfirmation(String to, Order order) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            helper.setTo(to);
+            helper.setSubject("Order Confirmation - TechShop");
+            helper.setText("Hello, your order #" + order.getId() + " has been placed successfully.\n\nTotal: " 
+                           + order.getTotalPrice() + " EUR.\n\nThank you for shopping with us!", false);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send email: " + e.getMessage());
+        }
+    }
+
+	
 
 	
 }

@@ -1,7 +1,7 @@
 package com.techshop.controller;
 
-import com.techshop.DTO.AddressDTO;
-import com.techshop.DTO.AddressUpdateDTO;
+import com.techshop.dto.AddressDTO;
+import com.techshop.dto.AddressUpdateDTO;
 import com.techshop.model.Address;
 import com.techshop.service.AddressService;
 import org.springframework.http.ResponseEntity;
