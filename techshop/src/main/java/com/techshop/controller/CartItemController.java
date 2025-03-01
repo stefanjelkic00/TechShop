@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/cart-items")
@@ -21,14 +21,28 @@ public class CartItemController {
     }
 
     @GetMapping
-    public List<CartItem> getAllCartItems() {
-        return cartItemService.getAllCartItems();
+    public ResponseEntity<List<CartItemDTO>> getAllCartItems() {
+        List<CartItemDTO> cartItems = cartItemService.getAllCartItems()
+            .stream()
+            .map(cartItem -> new CartItemDTO(
+                cartItem.getCart().getId(),
+                cartItem.getProduct().getId(),
+                cartItem.getQuantity()
+            ))
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(cartItems);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CartItem> getCartItemById(@PathVariable Long id) {
-        Optional<CartItem> cartItem = cartItemService.getCartItemById(id);
-        return cartItem.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CartItemDTO> getCartItemById(@PathVariable Long id) {
+        return cartItemService.getCartItemById(id)
+            .map(cartItem -> new CartItemDTO(
+                cartItem.getCart().getId(),
+                cartItem.getProduct().getId(),
+                cartItem.getQuantity()
+            ))
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping

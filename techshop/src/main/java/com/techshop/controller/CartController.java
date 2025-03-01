@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/carts")
@@ -20,15 +20,22 @@ public class CartController {
     }
 
     @GetMapping
-    public List<Cart> getAllCarts() {
-        return cartService.getAllCarts();
+    public ResponseEntity<List<CartDTO>> getAllCarts() {
+        List<CartDTO> carts = cartService.getAllCarts()
+            .stream()
+            .map(cart -> new CartDTO(cart.getUser().getId()))
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(carts);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cart> getCartById(@PathVariable Long id) {
-        Optional<Cart> cart = cartService.getCartById(id);
-        return cart.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CartDTO> getCartById(@PathVariable Long id) {
+        return cartService.getCartById(id)
+            .map(cart -> new CartDTO(cart.getUser().getId()))
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<Cart> getCartByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(cartService.getCartByUserId(userId));

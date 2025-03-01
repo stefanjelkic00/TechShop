@@ -1,6 +1,5 @@
 package com.techshop.service;
 
-import com.techshop.dto.UserDTO;
 import com.techshop.dto.UserUpdateDTO;
 import com.techshop.model.Order;
 import com.techshop.model.User;
@@ -22,7 +21,7 @@ public interface UserService {
 
     boolean existsByEmail(String email);
 
-    User createUser(UserDTO userDTO);
+    User createUser(UserUpdateDTO userDTO);
 
     User updateUser(Long id, UserUpdateDTO userUpdateDTO);
 

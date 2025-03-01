@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/addresses")
@@ -20,16 +21,32 @@ public class AddressControler {
     }
 
     @GetMapping
-    public List<Address> getAllAddresses() {
-        return addressService.getAllAddresses();
+    public ResponseEntity<List<AddressDTO>> getAllAddresses() {
+        List<AddressDTO> addresses = addressService.getAllAddresses()
+            .stream()
+            .map(address -> new AddressDTO(
+                address.getStreet(),
+                address.getCity(),
+                address.getPostalCode(),
+                address.getCountry()
+            ))
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(addresses);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Address> getAddressById(@PathVariable Long id) {
+    public ResponseEntity<AddressDTO> getAddressById(@PathVariable Long id) {
         return addressService.getAddressById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+            .map(address -> new AddressDTO(
+                address.getStreet(),
+                address.getCity(),
+                address.getPostalCode(),
+                address.getCountry()
+            ))
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
+
 
     @PostMapping
     public ResponseEntity<Address> createAddress(@RequestBody AddressDTO addressDTO) {

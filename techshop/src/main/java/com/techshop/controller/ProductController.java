@@ -8,6 +8,7 @@ import com.techshop.service.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
@@ -20,16 +21,41 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    public ResponseEntity<List<ProductDTO>> getAllProducts() {
+        List<ProductDTO> products = productService.getAllProducts()
+            .stream()
+            .map(product -> new ProductDTO(
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getImageUrl(),
+                product.getCategory()
+            ))
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(products);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+    public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {
         return productService.getProductById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+            .map(product -> new ProductDTO(
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getImageUrl(),
+                product.getCategory()
+            ))
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
+
+    @GetMapping("/discounted/{userId}")
+    public ResponseEntity<List<ProductDiscountDTO>> getProductsWithDiscount(@PathVariable Long userId) {
+        return ResponseEntity.ok(productService.getProductsWithDiscount(userId));
+    }
+
 
     @PostMapping
     public Product createProduct(@RequestBody ProductDTO product) {
@@ -53,10 +79,6 @@ public class ProductController {
     }
 
 
-    @GetMapping("/discounted/{userId}")
-    public ResponseEntity<List<ProductDiscountDTO>> getProductsWithDiscount(@PathVariable Long userId) {
-        return ResponseEntity.ok(productService.getProductsWithDiscount(userId));
-    }
-    
+
 
 }

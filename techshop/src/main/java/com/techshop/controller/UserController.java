@@ -5,16 +5,21 @@ import com.techshop.dto.UserUpdateDTO;
 import com.techshop.model.Order;
 import com.techshop.model.User;
 import com.techshop.service.UserService;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -22,18 +27,43 @@ import java.util.Optional;
 public class UserController {
 
     private final UserService userService;
+    
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<UserDTO> users = userService.getAllUsers()
+            .stream()
+            .map(user -> new UserDTO(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getRole(),
+                user.getCustomerType()
+            ))
+            .collect(Collectors.toList());
+
         return ResponseEntity.ok(users);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        Optional<User> user = userService.getUserById(id);
-        return user.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
+        return userService.getUserById(id)
+            .map(user -> new UserDTO(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getRole(),
+                user.getCustomerType()
+            ))
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
 
     @GetMapping("/email/{email}")
     public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
@@ -43,7 +73,7 @@ public class UserController {
 
     // Endpoint za registraciju CUSTOMER korisnika
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody UserDTO userDTO) {
+    public ResponseEntity<User> register(@RequestBody UserUpdateDTO userDTO) {
         if (userService.existsByEmail(userDTO.getEmail())) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -53,9 +83,12 @@ public class UserController {
 
 
     @PostMapping("/login")
-    public void login(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        userService.login(request, response);
+    public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password) {
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(email, password);
+        return new ResponseEntity<>(authenticationManager.authenticate(authenticationToken), HttpStatus.OK);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody UserUpdateDTO userUpdateDTO) {

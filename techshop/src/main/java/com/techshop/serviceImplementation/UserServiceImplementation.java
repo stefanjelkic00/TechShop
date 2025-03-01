@@ -3,7 +3,6 @@ package com.techshop.serviceImplementation;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.techshop.dto.UserDTO;
 import com.techshop.dto.UserUpdateDTO;
 import com.techshop.enums.Role;
 import com.techshop.model.Cart;
@@ -52,7 +51,7 @@ public class UserServiceImplementation implements UserService {
         return userRepository.findByEmail(email);
     }
     @Override
-    public User createUser(UserDTO userDTO) {
+    public User createUser(UserUpdateDTO userDTO) {
         if (userRepository.existsByEmail(userDTO.getEmail())) {
             throw new RuntimeException("Email is already in use.");
         }
@@ -67,6 +66,8 @@ public class UserServiceImplementation implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        
+        // **Podrazumevano postavljamo CUSTOMER uvek**
         user.setRole(Role.CUSTOMER);
 
         // Kreiranje korpe za korisnika
@@ -76,6 +77,7 @@ public class UserServiceImplementation implements UserService {
 
         return userRepository.save(user);
     }
+
 
 
     @Override

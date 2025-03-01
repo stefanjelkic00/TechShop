@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/order-items")
@@ -21,14 +21,30 @@ public class OrderItemController {
     }
 
     @GetMapping
-    public List<OrderItem> getAllOrderItems() {
-        return orderItemService.getAllOrderItems();
+    public ResponseEntity<List<OrderItemDTO>> getAllOrderItems() {
+        List<OrderItemDTO> orderItems = orderItemService.getAllOrderItems()
+            .stream()
+            .map(orderItem -> new OrderItemDTO(
+                orderItem.getOrder().getId(),
+                orderItem.getProduct().getId(),
+                orderItem.getQuantity(),
+                orderItem.getPrice()
+            ))
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(orderItems);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrderItem> getOrderItemById(@PathVariable Long id) {
-        Optional<OrderItem> orderItem = orderItemService.getOrderItemById(id);
-        return orderItem.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<OrderItemDTO> getOrderItemById(@PathVariable Long id) {
+        return orderItemService.getOrderItemById(id)
+            .map(orderItem -> new OrderItemDTO(
+                orderItem.getOrder().getId(),
+                orderItem.getProduct().getId(),
+                orderItem.getQuantity(),
+                orderItem.getPrice()
+            ))
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
