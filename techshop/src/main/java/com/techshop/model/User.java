@@ -44,6 +44,7 @@ public class User {
 
     
     @JsonManagedReference
+    @JsonIgnore
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Cart cart;
 

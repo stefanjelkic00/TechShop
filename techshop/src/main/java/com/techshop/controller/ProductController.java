@@ -3,10 +3,13 @@ package com.techshop.controller;
 import com.techshop.dto.ProductDTO;
 import com.techshop.dto.ProductDiscountDTO;
 import com.techshop.dto.ProductUpdateDTO;
+import com.techshop.enums.Category;
 import com.techshop.model.Product;
 import com.techshop.service.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -55,6 +58,32 @@ public class ProductController {
     public ResponseEntity<List<ProductDiscountDTO>> getProductsWithDiscount(@PathVariable Long userId) {
         return ResponseEntity.ok(productService.getProductsWithDiscount(userId));
     }
+    
+    
+    @PostMapping("/filter")
+    public ResponseEntity<List<ProductDTO>> filterProducts(@RequestBody ProductDTO productFilter) {
+        List<ProductDTO> products = productService.getFilteredProducts(productFilter)
+            .stream()
+            .map(product -> new ProductDTO(
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getImageUrl(),
+                product.getCategory()
+            ))
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(products);
+    }
+    
+    
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getAllCategories() {
+        return ResponseEntity.ok(productService.getAllCategories());
+    }
+
+
 
 
     @PostMapping

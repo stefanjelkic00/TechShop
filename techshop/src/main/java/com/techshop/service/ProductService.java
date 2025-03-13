@@ -3,6 +3,7 @@ package com.techshop.service;
 import com.techshop.dto.ProductDTO;
 import com.techshop.dto.ProductDiscountDTO;
 import com.techshop.dto.ProductUpdateDTO;
+import com.techshop.enums.Category;
 import com.techshop.model.Product;
 
 import java.util.List;
@@ -14,7 +15,8 @@ public interface ProductService {
     Product saveProduct(ProductDTO product);
     Product updateProduct(ProductUpdateDTO product);
     void deleteProduct(Long id);
-    
     List<ProductDiscountDTO> getProductsWithDiscount(Long userId);
-
+    public List<Product> getFilteredProducts(ProductDTO productFilter);
+    List<String> getAllCategories();
+    
 }

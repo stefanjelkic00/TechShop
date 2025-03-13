@@ -3,6 +3,7 @@ package com.techshop.elasticsearch.controller;
 import com.techshop.elasticsearch.model.ProductDocument;
 import com.techshop.elasticsearch.service.ProductElasticsearchService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,7 +31,7 @@ public class ProductElasticsearchController {
         return service.findAll();
     }
 
-    // 📌 Full-text pretraga (fuzzy + sinonimi + ćirilica/latinica)
+    // 📌 Full-text pretraga (fuzzy + ćirilica/latinica)
     @GetMapping("/search")
     public List<ProductDocument> searchProducts(@RequestParam String query) {
         return service.searchProducts(query);
@@ -48,18 +49,6 @@ public class ProductElasticsearchController {
         return service.fuzzySearch(query);
     }
 
-    // 📌 Pretraga uz sinonime (npr. "tv" → "televizor", "mobilni" → "telefon")
-    @GetMapping("/search-synonyms")
-    public List<ProductDocument> searchWithSynonyms(@RequestParam String query) {
-        return service.searchWithSynonyms(query);
-    }
-
-    // 📌 Prikaz sinonima za određenu reč
-    @GetMapping("/synonyms")
-    public List<String> expandQueryWithSynonyms(@RequestParam String query) {
-        return service.expandQueryWithSynonyms(query);
-    }
-
     // 📌 Sortiranje rezultata (po ceni ili datumu)
     @GetMapping("/search-sort")
     public List<ProductDocument> searchAndSort(
@@ -73,5 +62,17 @@ public class ProductElasticsearchController {
     @GetMapping("/autocomplete")
     public List<String> autocomplete(@RequestParam String query) {
         return service.autocomplete(query);
+    }
+    
+    @GetMapping("/filter")
+    public ResponseEntity<List<ProductDocument>> filterProducts(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Float minPrice,
+            @RequestParam(required = false) Float maxPrice,
+            @RequestParam(defaultValue = "price_asc") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortOrder) {
+        List<ProductDocument> products = service.filterProducts(category, minPrice, maxPrice, sortBy, sortOrder, query);
+        return ResponseEntity.ok(products);
     }
 }

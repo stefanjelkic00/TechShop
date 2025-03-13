@@ -1,5 +1,7 @@
 package com.techshop.controller;
 
+import com.techshop.dto.ChangePasswordDTO;
+import com.techshop.dto.RegisterUserDTO;
 import com.techshop.dto.UserDTO;
 import com.techshop.dto.UserUpdateDTO;
 import com.techshop.model.Order;
@@ -16,6 +18,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -73,7 +78,7 @@ public class UserController {
 
     // Endpoint za registraciju CUSTOMER korisnika
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody UserUpdateDTO userDTO) {
+    public ResponseEntity<User> register(@RequestBody RegisterUserDTO userDTO) {
         if (userService.existsByEmail(userDTO.getEmail())) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -114,5 +119,14 @@ public class UserController {
     public ResponseEntity<List<Order>> getUserOrders(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserOrders(id));
     }
+    
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> changePassword(@AuthenticationPrincipal UserDetails userDetails,
+                                                 @RequestBody ChangePasswordDTO passwordDTO) {
+        userService.changePassword(userDetails.getUsername(), passwordDTO.getCurrentPassword(), passwordDTO.getNewPassword());
+        return ResponseEntity.ok("Lozinka uspešno promenjena.");
+    }
+
     
 }

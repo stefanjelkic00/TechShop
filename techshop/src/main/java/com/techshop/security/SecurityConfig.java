@@ -1,9 +1,9 @@
 package com.techshop.security;
 
+import com.techshop.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -28,6 +28,7 @@ public class SecurityConfig {
 
     private final AuthenticationConfiguration authenticationConfiguration;
     private final CustomUserDetailsService customUserDetailsService;
+    private final UserRepository userRepository;
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
@@ -40,7 +41,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public DaoAuthenticationProvider daoAuthenticationProvider(){
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
         daoAuthenticationProvider.setUserDetailsService(userDetailsService());
         daoAuthenticationProvider.setPasswordEncoder(bCryptPasswordEncoder());
@@ -49,24 +50,33 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        AuthenticationFilter authFilter = new AuthenticationFilter(authenticationManager(authenticationConfiguration));
-        authFilter.setFilterProcessesUrl("/api/users/login"); // Ista ruta kao u starom projektu
+        AuthenticationFilter authFilter = new AuthenticationFilter(authenticationManager(authenticationConfiguration), userRepository);
+        authFilter.setFilterProcessesUrl("/api/users/login");
+
+        System.out.println("✅ Spring Security konfiguracija učitana!");
+        System.out.println("✅ Dozvoljen javni pristup za: /api/elasticsearch/**, /api/users/login/**, /api/users/register, /api/products/**, /api/categories/**, /api/sync/**");
 
         return httpSecurity
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .authorizeHttpRequests(auth -> {
+                    System.out.println("🔍 Primena pravila za zahteve...");
+                    auth
                         .requestMatchers("/api/users/login/**", "/api/users/register").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .requestMatchers("/api/products/**", "/api/categories/**").permitAll()
+                        .requestMatchers("/api/elasticsearch/**").permitAll()
+                        .requestMatchers("/api/elasticsearch/products/**").permitAll()
+                        .requestMatchers("/api/elasticsearch/categories").permitAll()
+                        .requestMatchers("/api/sync/**").permitAll()
+                        .requestMatchers("/admin/**").hasAuthority("ADMIN")
+                        .anyRequest().authenticated();
+                })
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilter(authFilter)
                 .addFilterBefore(new AuthorizationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilter(authFilter) // Ovo omogućava da radi login
                 .build();
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
@@ -76,10 +86,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-        configuration.setAllowCredentials(true);
-        configuration.addAllowedHeader("*");
+        
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8001"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(false);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

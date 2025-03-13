@@ -1,5 +1,6 @@
 package com.techshop.service;
 
+import com.techshop.dto.RegisterUserDTO;
 import com.techshop.dto.UserUpdateDTO;
 import com.techshop.model.Order;
 import com.techshop.model.User;
@@ -21,7 +22,7 @@ public interface UserService {
 
     boolean existsByEmail(String email);
 
-    User createUser(UserUpdateDTO userDTO);
+    User createUser(RegisterUserDTO userDTO);
 
     User updateUser(Long id, UserUpdateDTO userUpdateDTO);
 
@@ -30,6 +31,9 @@ public interface UserService {
     void login(HttpServletRequest request, HttpServletResponse response) throws IOException;
     
     List<Order> getUserOrders(Long userId);
+    
+    void changePassword(String email, String currentPassword, String newPassword);
+
 
 
 }

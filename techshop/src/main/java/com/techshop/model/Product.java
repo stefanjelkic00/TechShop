@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import com.techshop.enums.Category;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -30,6 +31,9 @@ public class Product {
     private Category category;
 
     private String imageUrl;
+    
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now(); // Automatski postavlja datum pri kreiranju
 
  
 }

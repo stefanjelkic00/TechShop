@@ -1,10 +1,11 @@
 package com.techshop.service;
 
-
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.techshop.dto.OrderDTO;
@@ -13,6 +14,7 @@ import com.techshop.model.Order;
 import com.techshop.model.User;
 import com.techshop.repository.OrderRepository;
 import com.techshop.repository.UserRepository;
+import com.techshop.serviceImplementation.OrderServiceImplementation;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -30,7 +32,12 @@ class OrderServiceTest {
     private UserRepository userRepository;
 
     @InjectMocks
-    private OrderService orderService;
+    private OrderServiceImplementation orderService;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
 
     @Test
     void testCreateOrder() {
@@ -49,6 +56,7 @@ class OrderServiceTest {
         assertNotNull(createdOrder);
         assertEquals(OrderStatus.PENDING, createdOrder.getOrderStatus());
         assertEquals(BigDecimal.valueOf(100), createdOrder.getTotalPrice());
+        assertNotNull(createdOrder.getUser());
         assertEquals(user, createdOrder.getUser());
     }
 }

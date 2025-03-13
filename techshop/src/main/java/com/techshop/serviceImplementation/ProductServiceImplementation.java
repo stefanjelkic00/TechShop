@@ -3,14 +3,21 @@ package com.techshop.serviceImplementation;
 import com.techshop.dto.ProductDTO;
 import com.techshop.dto.ProductDiscountDTO;
 import com.techshop.dto.ProductUpdateDTO;
+import com.techshop.elasticsearch.model.ProductDocument;
+import com.techshop.elasticsearch.repository.ProductElasticsearchRepository;
+import com.techshop.elasticsearch.service.ProductSyncService;
+import com.techshop.enums.Category;
 import com.techshop.model.Product;
 import com.techshop.model.User;
 import com.techshop.repository.ProductRepository;
 import com.techshop.repository.UserRepository;
 import com.techshop.service.ProductService;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -20,11 +27,20 @@ public class ProductServiceImplementation implements ProductService {
 
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    
-    public ProductServiceImplementation(UserRepository userRepository,ProductRepository productRepository) {
-        this.productRepository = productRepository;
-        this.userRepository = userRepository; // Dodato!
+    private final ProductSyncService productSyncService;
+    private final ProductElasticsearchRepository productElasticsearchRepository;
 
+    @Autowired
+    public ProductServiceImplementation(
+        UserRepository userRepository, 
+        ProductRepository productRepository,
+        ProductElasticsearchRepository productElasticsearchRepository,
+        ProductSyncService productSyncService
+    ) {
+        this.userRepository = userRepository;
+        this.productRepository = productRepository;
+        this.productElasticsearchRepository = productElasticsearchRepository;
+        this.productSyncService = productSyncService;
     }
 
     @Override
@@ -51,8 +67,18 @@ public class ProductServiceImplementation implements ProductService {
         product.setImageUrl(productDTO.getImageUrl());
         product.setCategory(productDTO.getCategory());
 
-        return productRepository.save(product);
+        // 1️⃣ Sačuvaj u MySQL
+        Product savedProduct = productRepository.save(product);
+
+        // 2️⃣ Konvertuj u Elasticsearch dokument
+        ProductDocument productDocument = productSyncService.convertToDocument(savedProduct);
+
+        // 3️⃣ Sačuvaj u Elasticsearch
+        productElasticsearchRepository.save(productDocument);
+
+        return savedProduct;
     }
+
 
     @Override
     public Product updateProduct(ProductUpdateDTO productUpdateDTO) {
@@ -60,6 +86,7 @@ public class ProductServiceImplementation implements ProductService {
 
         if (existingProduct.isPresent()) {
             Product product = existingProduct.get();
+
             if (productUpdateDTO.getStockQuantity() < 0) {
                 throw new RuntimeException("Stock quantity cannot be negative.");
             }
@@ -70,18 +97,35 @@ public class ProductServiceImplementation implements ProductService {
             product.setStockQuantity(productUpdateDTO.getStockQuantity());
             product.setImageUrl(productUpdateDTO.getImageUrl());
             product.setCategory(productUpdateDTO.getCategory());
-            return productRepository.save(product);
+
+            Product updatedProduct = productRepository.save(product);
+
+            // Sinhronizacija sa Elasticsearch-om
+            ProductDocument productDocument = productSyncService.convertToDocument(updatedProduct);
+            productElasticsearchRepository.save(productDocument);
+
+            return updatedProduct;
         } else {
             throw new RuntimeException("Product with ID " + productUpdateDTO.getId() + " not found!");
         }
     }
 
 
+
     @Override
     public void deleteProduct(Long id) {
-        productRepository.deleteById(id);
+        Optional<Product> existingProduct = productRepository.findById(id);
+
+        if (existingProduct.isPresent()) {
+            productRepository.deleteById(id);
+
+            // Brisanje iz Elasticsearch-a
+            productElasticsearchRepository.deleteById(id.toString());
+        } else {
+            throw new RuntimeException("Product with ID " + id + " not found!");
+        }
     }
-    
+
     
     @Override
     public List<ProductDiscountDTO> getProductsWithDiscount(Long userId) {
@@ -98,6 +142,9 @@ public class ProductServiceImplementation implements ProductService {
                     product.getPrice(), discountedPrice, product.getImageUrl(), product.getCategory());
         }).collect(Collectors.toList());
     }
+    
+    
+
 
 
     private BigDecimal getDiscountForUser(User user) {
@@ -112,7 +159,46 @@ public class ProductServiceImplementation implements ProductService {
                 return BigDecimal.ZERO; // Nema popusta za REGULAR korisnike
         }
     }
+    
+    @Override
+    public List<Product> getFilteredProducts(ProductDTO productFilter) {
+        // Početni upit - svi proizvodi
+        List<Product> products = productRepository.findAll();
 
+        // Filtracija po kategoriji ako je zadato
+        if (productFilter.getCategory() != null) {
+            products = products.stream()
+                .filter(product -> product.getCategory() == productFilter.getCategory())
+                .collect(Collectors.toList());
+        }
+
+        // Filtracija po nazivu ako je zadato
+        if (productFilter.getName() != null && !productFilter.getName().isEmpty()) {
+            products = products.stream()
+                .filter(product -> product.getName().toLowerCase().contains(productFilter.getName().toLowerCase()))
+                .collect(Collectors.toList());
+        }
+
+        // Filtracija po minimalnoj ceni ako je zadato
+        if (productFilter.getPrice() != null) {
+            products = products.stream()
+                .filter(product -> product.getPrice().compareTo(productFilter.getPrice()) >= 0)
+                .collect(Collectors.toList());
+        }
+
+        return products;
+    }
+    
+    
+    @Override
+    public List<String> getAllCategories() {
+        return Arrays.stream(Category.values())
+                     .map(Enum::name)
+                     .collect(Collectors.toList());
+    }
+
+
+    
     
     
 }
