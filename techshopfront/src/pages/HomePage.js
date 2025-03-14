@@ -2,8 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { Container, Row, Col, Card, Button, Spinner, FormControl } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { getProducts, getCategories, autocompleteSearch } from "../services/api"; // Dodajemo autocompleteSearch
+import { getProducts, getCategories, autocompleteSearch, getCartByUserId } from "../services/api";
 import { CartPlus } from "react-bootstrap-icons";
+import { jwtDecode } from "jwt-decode";
 
 function HomePage() {
   const [products, setProducts] = useState([]);
@@ -15,7 +16,7 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [suggestions, setSuggestions] = useState([]); // Novi state za sugestije
+  const [suggestions, setSuggestions] = useState([]);
   const priceDropdownRef = useRef(null);
   const navRef = useRef(null);
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ function HomePage() {
   const handleSearchChange = async (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    if (query.length > 2) { // Pozivamo autocomplete samo za 3+ karaktera
+    if (query.length > 2) {
       try {
         const results = await autocompleteSearch(query);
         setSuggestions(results);
@@ -97,13 +98,13 @@ function HomePage() {
         setSuggestions([]);
       }
     } else {
-      setSuggestions([]); // Čistimo sugestije ako je unos kraći od 3 karaktera
+      setSuggestions([]);
     }
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setSearchQuery(suggestion); // Postavljamo izabranu sugestiju u search bar
-    setSuggestions([]); // Sakrivamo dropdown nakon izbora
+    setSearchQuery(suggestion);
+    setSuggestions([]);
   };
 
   const handleCategorySelect = (selectedCategory) => {
@@ -133,8 +134,113 @@ function HomePage() {
     navigate(`/product/${productId}`);
   };
 
-  const addToCart = (product) => {
-    console.log(`Proizvod ${product.name} dodat u korpu!`);
+  const addToCart = async (product) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Redirektuj na login sa informacijom o pokušaju dodavanja u korpu
+      navigate("/login", { state: { fromCart: true } });
+      return;
+    }
+
+    try {
+      const decodedToken = jwtDecode(token);
+      const email = decodedToken.sub;
+      console.log("Dekodiran email iz tokena:", email);
+
+      // Dohvatamo korisnika preko email-a
+      const userResponse = await fetch(`http://localhost:8001/api/users/email/${email}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!userResponse.ok) {
+        throw new Error(`Neuspelo dohvatanje korisnika: ${userResponse.status} - ${userResponse.statusText}`);
+      }
+      const userText = await userResponse.text();
+      let userData;
+      try {
+        userData = JSON.parse(userText);
+      } catch (e) {
+        console.error("Neispravan JSON odgovor od /api/users/email/:", userText);
+        throw new Error("Neispravan odgovor od servera");
+      }
+      const userId = userData && userData.id ? userData.id : null;
+
+      if (!userId || userId <= 0) {
+        throw new Error("Neispravan userId: " + userId);
+      }
+      console.log("Pronađen userId:", userId);
+
+      // Dohvatamo korpu korisnika
+      const cartResponse = await getCartByUserId(userId);
+      console.log("Odgovor od getCartByUserId:", cartResponse);
+      let cartId = cartResponse.id;
+
+      if (!cartId) {
+        // Kreiraj novu korpu ako ne postoji
+        const newCartDTO = { userId };
+        console.log("Kreiranje nove korpe sa podacima:", newCartDTO);
+        const createResponse = await fetch("http://localhost:8001/api/carts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(newCartDTO),
+        });
+        if (!createResponse.ok) {
+          const errorText = await createResponse.text();
+          console.error("Neuspelo kreiranje korpe:", {
+            status: createResponse.status,
+            statusText: createResponse.statusText,
+            body: errorText,
+          });
+          throw new Error(`Neuspelo kreiranje korpe: ${createResponse.status} - ${errorText}`);
+        }
+        const newCartText = await createResponse.text();
+        let newCart;
+        try {
+          newCart = JSON.parse(newCartText);
+        } catch (e) {
+          console.error("Neispravan JSON odgovor od /api/carts:", newCartText);
+          throw new Error("Neispravan odgovor od servera prilikom kreiranja korpe");
+        }
+        cartId = newCart.id;
+        console.log("Nova korpa kreirana sa id:", cartId);
+      }
+
+      // Kreiramo DTO za dodavanje u korpu
+      const cartItemDTO = {
+        cartId: cartId,
+        productId: product.id,
+        quantity: 1,
+      };
+      console.log("Dodavanje stavke u korpu sa podacima:", cartItemDTO);
+
+      // Šaljemo zahtev za dodavanje stavke u korpu
+      const response = await fetch("http://localhost:8001/api/cart-items", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(cartItemDTO),
+      });
+
+      if (response.ok) {
+        console.log(`Proizvod ${product.name} dodat u korpu!`);
+        window.dispatchEvent(new Event("storage")); // Ažuriranje UI-ja
+      } else {
+        const errorText = await response.text();
+        console.error("Greška pri dodavanju u korpu:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+        });
+        throw new Error(`Greška pri dodavanju u korpu: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error("Greška pri komunikaciji sa backend-om:", error);
+      alert("Došlo je do greške prilikom dodavanja u korpu. Proverite konzolu za detalje.");
+    }
   };
 
   useEffect(() => {
@@ -301,7 +407,6 @@ function HomePage() {
             font-style: italic;
             text-align: center;
           }
-          /* Novi stilovi za autocomplete dropdown */
           .suggestions-dropdown {
             position: absolute;
             top: 100%;
@@ -604,7 +709,7 @@ function HomePage() {
       {loading && (
         <div className="text-center text-light">
           <Spinner animation="border" variant="light" />
-          <p>Učitavanje arsenala...</p>
+          <p>Učitavanje ...</p>
         </div>
       )}
 

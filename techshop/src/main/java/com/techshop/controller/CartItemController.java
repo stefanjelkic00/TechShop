@@ -25,6 +25,7 @@ public class CartItemController {
         List<CartItemDTO> cartItems = cartItemService.getAllCartItems()
             .stream()
             .map(cartItem -> new CartItemDTO(
+                cartItem.getId(), // Dodajemo id
                 cartItem.getCart().getId(),
                 cartItem.getProduct().getId(),
                 cartItem.getQuantity()
@@ -34,9 +35,13 @@ public class CartItemController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CartItemDTO> getCartItemById(@PathVariable Long id) {
+    public ResponseEntity<?> getCartItemById(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().body("Invalid cartItemId: id must be a positive number.");
+        }
         return cartItemService.getCartItemById(id)
             .map(cartItem -> new CartItemDTO(
+                cartItem.getId(), // Dodajemo id
                 cartItem.getCart().getId(),
                 cartItem.getProduct().getId(),
                 cartItem.getQuantity()
@@ -45,22 +50,70 @@ public class CartItemController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/cart/{cartId}")
+    public ResponseEntity<List<CartItemDTO>> getCartItemsByCartId(@PathVariable Long cartId) {
+        if (cartId == null || cartId <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        List<CartItem> cartItems = cartItemService.getCartItemsByCartId(cartId);
+        List<CartItemDTO> cartItemDTOs = cartItems.stream()
+            .map(item -> new CartItemDTO(
+                item.getId(), // Dodajemo id
+                item.getCart().getId(),
+                item.getProduct().getId(),
+                item.getQuantity()
+            ))
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(cartItemDTOs);
+    }
+
     @PostMapping
-    public ResponseEntity<CartItem> addCartItem(@RequestBody CartItemDTO cartItemDTO) {
-        CartItem cartItem = cartItemService.addCartItem(cartItemDTO);
-        return ResponseEntity.ok(cartItem);
+    public ResponseEntity<?> addCartItem(@RequestBody CartItemDTO cartItemDTO) {
+        if (cartItemDTO == null || cartItemDTO.getCartId() == null || cartItemDTO.getProductId() == null) {
+            return ResponseEntity.badRequest().body("Invalid CartItemDTO: cartId and productId must be provided.");
+        }
+        try {
+            CartItem cartItem = cartItemService.addCartItem(cartItemDTO);
+            return ResponseEntity.ok(new CartItemDTO(
+                cartItem.getId(), // Dodajemo id
+                cartItem.getCart().getId(),
+                cartItem.getProduct().getId(),
+                cartItem.getQuantity()
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Failed to add cart item: " + e.getMessage());
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CartItem> updateCartItem(@PathVariable Long id, @RequestBody CartItemUpdateDTO cartItemUpdateDTO) {
-        cartItemUpdateDTO.setId(id);
-        CartItem updatedCartItem = cartItemService.updateCartItem(cartItemUpdateDTO);
-        return ResponseEntity.ok(updatedCartItem);
+    public ResponseEntity<?> updateCartItem(@PathVariable Long id, @RequestBody CartItemUpdateDTO cartItemUpdateDTO) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().body("Invalid cartItemId: id must be a positive number.");
+        }
+        try {
+            cartItemUpdateDTO.setId(id);
+            CartItem updatedCartItem = cartItemService.updateCartItem(cartItemUpdateDTO);
+            return ResponseEntity.ok(new CartItemDTO(
+                updatedCartItem.getId(), // Dodajemo id
+                updatedCartItem.getCart().getId(),
+                updatedCartItem.getProduct().getId(),
+                updatedCartItem.getQuantity()
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Failed to update cart item: " + e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCartItem(@PathVariable Long id) {
-        cartItemService.deleteCartItem(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteCartItem(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().body("Invalid cartItemId: id must be a positive number.");
+        }
+        try {
+            cartItemService.deleteCartItem(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

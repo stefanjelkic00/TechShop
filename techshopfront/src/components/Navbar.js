@@ -17,21 +17,54 @@ function NavigationBar() {
         const decodedToken = jwtDecode(token);
         console.log("Dekodirani token:", decodedToken);
         setUser({
+          id: decodedToken.id,
           firstName: decodedToken.firstName,
           lastName: decodedToken.lastName,
           customerType: decodedToken.customerType,
         });
+        return decodedToken.id;
       } catch (error) {
         console.error("Greška pri dekodiranju tokena:", error);
+        return null;
       }
+    }
+    return null;
+  };
+
+  const fetchCartItems = async (userId) => {
+    if (!userId) return;
+
+    try {
+      const cartResponse = await fetch(`http://localhost:8080/api/carts/user/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!cartResponse.ok) {
+        throw new Error("Failed to fetch cart");
+      }
+      const cart = await cartResponse.json();
+      setCartItems(cart.cartItems || []);
+    } catch (error) {
+      console.error("Greška pri dohvatanju korpe:", error);
+      setCartItems([]);
     }
   };
 
   useEffect(() => {
-    loadUserFromToken();
+    const userId = loadUserFromToken();
+
+    if (userId) {
+      fetchCartItems(userId);
+    }
 
     const handleStorageChange = () => {
-      loadUserFromToken();
+      const newUserId = loadUserFromToken();
+      if (newUserId) {
+        fetchCartItems(newUserId);
+      } else {
+        setCartItems([]);
+      }
     };
     window.addEventListener("storage", handleStorageChange);
 
@@ -44,6 +77,7 @@ function NavigationBar() {
     e.preventDefault();
     localStorage.removeItem("token");
     setUser(null);
+    setCartItems([]);
     navigate("/");
   };
 
@@ -100,18 +134,18 @@ function NavigationBar() {
             position: absolute;
             top: 60px;
             right: 10px;
-            background-color: #ffffff !important; /* Osiguravamo belu pozadinu */
+            background-color: #ffffff !important;
             color: #000;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             padding: 10px;
             min-width: 220px;
-            z-index: 1050; /* Već je dovoljno visoko za HomePage */
+            z-index: 1050;
           }
           .cart-dropdown-item {
             padding: 5px 0;
             border-bottom: 1px solid #eee;
-            color: #000; /* Osiguravamo da tekst bude crn za kontrast */
+            color: #000;
           }
           .cart-dropdown-item:last-child {
             border-bottom: none;
@@ -177,7 +211,7 @@ function NavigationBar() {
                     <>
                       {cartItems.map((item) => (
                         <div key={item.id} className="cart-dropdown-item">
-                          {item.name} - {item.price} RSD
+                          {item.product.name} - {item.product.price} RSD (x{item.quantity})
                         </div>
                       ))}
                       <Link to="/cart" className="btn btn-primary w-100 mt-2">
@@ -197,34 +231,6 @@ function NavigationBar() {
           </Nav>
         ) : (
           <Nav className="d-flex align-items-center user-nav" style={{ marginRight: "20px" }}>
-            <div
-              style={{ position: "relative" }}
-              onMouseEnter={() => setShowCartDropdown(true)}
-              onMouseLeave={() => setShowCartDropdown(false)}
-            >
-              <Nav.Link as={Link} to="/cart" className="nav-button" style={buttonStyle}>
-                <FaShoppingCart size={22} style={{ verticalAlign: "middle", color: "#fff" }} />
-              </Nav.Link>
-              {showCartDropdown && (
-                <div className="cart-dropdown">
-                  {cartItems.length > 0 ? (
-                    <>
-                      {cartItems.map((item) => (
-                        <div key={item.id} className="cart-dropdown-item">
-                          {item.name} - {item.price} RSD
-                        </div>
-                      ))}
-                      <Link to="/cart" className="btn btn-primary w-100 mt-2">
-                        Nastavi
-                      </Link>
-                    </>
-                  ) : (
-                    <div>Nema stavki u korpi</div>
-                  )}
-                </div>
-              )}
-            </div>
-
             <Nav.Link as={Link} to="/login" className="nav-button" style={buttonStyle}>
               Prijava
             </Nav.Link>

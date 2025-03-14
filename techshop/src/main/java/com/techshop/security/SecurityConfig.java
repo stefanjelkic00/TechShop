@@ -55,6 +55,7 @@ public class SecurityConfig {
 
         System.out.println("✅ Spring Security konfiguracija učitana!");
         System.out.println("✅ Dozvoljen javni pristup za: /api/elasticsearch/**, /api/users/login/**, /api/users/register, /api/products/**, /api/categories/**, /api/sync/**");
+        System.out.println("✅ Dozvoljen pristup za autentifikovane korisnike: /api/carts/**, /api/cart-items/**");
 
         return httpSecurity
                 .cors(Customizer.withDefaults())
@@ -69,6 +70,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/elasticsearch/products/**").permitAll()
                         .requestMatchers("/api/elasticsearch/categories").permitAll()
                         .requestMatchers("/api/sync/**").permitAll()
+                        // Dozvoljavamo pristup autentifikovanim korisnicima
+                        .requestMatchers("/api/carts/**", "/api/cart-items/**").authenticated()
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated();
                 })
@@ -90,7 +93,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8001"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(true); // Promenjeno na true jer koristimo autentifikaciju
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

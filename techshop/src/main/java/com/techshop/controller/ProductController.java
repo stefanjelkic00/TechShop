@@ -3,13 +3,12 @@ package com.techshop.controller;
 import com.techshop.dto.ProductDTO;
 import com.techshop.dto.ProductDiscountDTO;
 import com.techshop.dto.ProductUpdateDTO;
-import com.techshop.enums.Category;
 import com.techshop.model.Product;
 import com.techshop.service.ProductService;
+import org.springframework.http.HttpStatus; 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,7 +58,6 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductsWithDiscount(userId));
     }
     
-    
     @PostMapping("/filter")
     public ResponseEntity<List<ProductDTO>> filterProducts(@RequestBody ProductDTO productFilter) {
         List<ProductDTO> products = productService.getFilteredProducts(productFilter)
@@ -73,22 +71,18 @@ public class ProductController {
                 product.getCategory()
             ))
             .collect(Collectors.toList());
-
         return ResponseEntity.ok(products);
     }
-    
     
     @GetMapping("/categories")
     public ResponseEntity<List<String>> getAllCategories() {
         return ResponseEntity.ok(productService.getAllCategories());
     }
 
-
-
-
     @PostMapping
-    public Product createProduct(@RequestBody ProductDTO product) {
-        return productService.saveProduct(product);
+    public ResponseEntity<Product> createProduct(@RequestBody ProductDTO product) {
+        Product savedProduct = productService.saveProduct(product);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
     }
     
     @PutMapping("/{id}")
@@ -100,14 +94,9 @@ public class ProductController {
         return ResponseEntity.ok(updatedProduct);
     }
     
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
-
-
-
-
 }

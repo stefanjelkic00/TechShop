@@ -10,6 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CartItemDTO {
+	private Long id; 
     private Long cartId;   // ID korpe u koju se dodaje proizvod
     private Long productId; // ID proizvoda koji se dodaje u korpu
     private int quantity;   // Količina proizvoda

@@ -8,13 +8,16 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CartItemService {
+
     List<CartItem> getAllCartItems();
+
     Optional<CartItem> getCartItemById(Long id);
+
+    List<CartItem> getCartItemsByCartId(Long cartId);
+
     CartItem addCartItem(CartItemDTO cartItemDTO);
-    
-    //ova funkcija mi mozda nece trebati jer nece biti potrebe za update cart(mocice samo da se doda ili obrise)
+
     CartItem updateCartItem(CartItemUpdateDTO cartItemUpdateDTO);
-    
+
     void deleteCartItem(Long id);
-    
 }
