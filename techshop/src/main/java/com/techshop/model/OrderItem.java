@@ -1,5 +1,6 @@
 package com.techshop.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,6 +21,7 @@ public class OrderItem {
 
     @ManyToOne
     @JoinColumn(name = "order_id", referencedColumnName = "id")
+    @JsonBackReference
     private Order order;
 
     @ManyToOne
@@ -27,16 +29,13 @@ public class OrderItem {
     private Product product;
 
     private int quantity;
+
     private BigDecimal price;
-    
-    
+
     public OrderItem(Order order, Product product, int quantity) {
         this.order = order;
         this.product = product;
         this.quantity = quantity;
-        this.price = product.getPrice(); // Dodaj cenu proizvoda
+        this.price = product.getPrice().multiply(BigDecimal.valueOf(quantity));
     }
-
-    
-    
 }

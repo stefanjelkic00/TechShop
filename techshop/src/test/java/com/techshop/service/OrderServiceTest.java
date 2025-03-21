@@ -41,18 +41,25 @@ class OrderServiceTest {
 
     @Test
     void testCreateOrder() {
+        // Kreiramo testnog korisnika
         User user = new User();
         user.setId(1L);
+        user.setEmail("test@example.com"); // Dodajemo email za korisnika
 
+        // Kreiramo OrderDTO
         OrderDTO orderDTO = new OrderDTO();
         orderDTO.setUserId(1L);
         orderDTO.setTotalPrice(BigDecimal.valueOf(100));
 
+        // Mock-ujemo ponašanje repozitorijuma
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user)); // Dodajemo mock za findByEmail
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Order createdOrder = orderService.createOrder(orderDTO);
+        // Pozivamo metodu sa oba parametra: OrderDTO i email
+        Order createdOrder = orderService.createOrder(orderDTO, "test@example.com");
 
+        // Proveravamo rezultate
         assertNotNull(createdOrder);
         assertEquals(OrderStatus.PENDING, createdOrder.getOrderStatus());
         assertEquals(BigDecimal.valueOf(100), createdOrder.getTotalPrice());

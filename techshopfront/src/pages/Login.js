@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { Button } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { loginUser } from "../services/api";
@@ -11,6 +11,28 @@ import { FaSignInAlt } from "react-icons/fa";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromCart = location.state?.fromCart;
+
+  // Stanje za poruku i grešku iz query parametara
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  // Provera URL parametara za poruku ili grešku nakon verifikacije
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const successMessage = queryParams.get("message");
+    const errorMessage = queryParams.get("error");
+
+    if (successMessage) {
+      setMessage(successMessage);
+      toast.success(successMessage);
+    }
+    if (errorMessage) {
+      setError(errorMessage);
+      toast.error(errorMessage);
+    }
+  }, [location.search]);
 
   return (
     <div
@@ -72,6 +94,60 @@ function Login() {
         >
           <FaSignInAlt style={{ marginRight: "10px", fontSize: "18px" }} /> Prijava
         </h6>
+
+        {fromCart && (
+          <div
+            className="text-center mb-3"
+            style={{
+              borderRadius: "8px",
+              fontSize: "0.9rem",
+              width: "80%",
+              backgroundColor: "#333",
+              color: "#ff4500",
+              padding: "10px",
+              border: "1px solid #444",
+            }}
+          >
+            Morate biti prijavljeni kako biste dodali artikal u korpu i izvršili porudžbinu.
+          </div>
+        )}
+
+        {/* Prikaz poruke o uspešnoj verifikaciji */}
+        {message && (
+          <div
+            className="text-center mb-3"
+            style={{
+              borderRadius: "8px",
+              fontSize: "0.9rem",
+              width: "80%",
+              backgroundColor: "#28a745",
+              color: "white",
+              padding: "10px",
+              border: "1px solid #218838",
+            }}
+          >
+            {message}
+          </div>
+        )}
+
+        {/* Prikaz greške iz verifikacije */}
+        {error && (
+          <div
+            className="text-center mb-3"
+            style={{
+              borderRadius: "8px",
+              fontSize: "0.9rem",
+              width: "80%",
+              backgroundColor: "#dc3545",
+              color: "white",
+              padding: "10px",
+              border: "1px solid #c82333",
+            }}
+          >
+            {error}
+          </div>
+        )}
+
         <Formik
           initialValues={{ email: "", password: "" }}
           validationSchema={Yup.object({
@@ -84,9 +160,13 @@ function Login() {
             try {
               await loginUser({ email: values.email, password: values.password });
               toast.success("Uspešno ste se prijavili!");
-              navigate("/");
+              navigate(fromCart ? "/" : "/");
             } catch (error) {
-              toast.error("Neispravni kredencijali. Pokušajte ponovo.");
+              if (error.response?.data?.error === "Registracija nije potvrđena. Proverite vaš mejl za potvrdu.") {
+                toast.error("Registracija nije potvrđena. Proverite vaš mejl za potvrdu.");
+              } else {
+                toast.error("Neispravni kredencijali. Pokušajte ponovo.");
+              }
             }
             setSubmitting(false);
           }}
@@ -95,7 +175,7 @@ function Login() {
             <Form className="d-flex flex-column align-items-center w-100">
               <div
                 className="w-75 text-center"
-                style={{ marginBottom: "20px" }} // Smanjen razmak na 20px
+                style={{ marginBottom: "20px" }}
               >
                 <Field
                   type="email"
@@ -126,7 +206,7 @@ function Login() {
 
               <div
                 className="w-75 text-center"
-                style={{ marginBottom: "20px" }} // Smanjen razmak na 20px
+                style={{ marginBottom: "20px" }}
               >
                 <Field
                   type="password"
@@ -163,7 +243,7 @@ function Login() {
                   justifyContent: "center",
                   width: "50%",
                   margin: "0 auto",
-                  marginBottom: "20px", // Smanjen razmak na 20px
+                  marginBottom: "20px",
                 }}
               >
                 <Button
@@ -173,7 +253,7 @@ function Login() {
                   disabled={props.isSubmitting}
                   style={{
                     borderRadius: "8px",
-                    padding: "10px",
+                    padding: "10px", // Ispravljeno: uklonjen "Ascending," i postavljena validna vrednost
                     backgroundColor: "#ff4500",
                     border: "none",
                     color: "white",

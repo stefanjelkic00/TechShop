@@ -12,11 +12,11 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/addresses")
-public class AddressControler {
+public class AddressController { // Ispravljen naziv klase sa "Controler" na "Controller"
 
     private final AddressService addressService;
 
-    public AddressControler(AddressService addressService) {
+    public AddressController(AddressService addressService) {
         this.addressService = addressService;
     }
 
@@ -25,6 +25,7 @@ public class AddressControler {
         List<AddressDTO> addresses = addressService.getAllAddresses()
             .stream()
             .map(address -> new AddressDTO(
+                address.getId(),
                 address.getStreet(),
                 address.getCity(),
                 address.getPostalCode(),
@@ -38,6 +39,7 @@ public class AddressControler {
     public ResponseEntity<AddressDTO> getAddressById(@PathVariable Long id) {
         return addressService.getAddressById(id)
             .map(address -> new AddressDTO(
+                address.getId(),
                 address.getStreet(),
                 address.getCity(),
                 address.getPostalCode(),
@@ -47,19 +49,18 @@ public class AddressControler {
             .orElse(ResponseEntity.notFound().build());
     }
 
-
     @PostMapping
     public ResponseEntity<Address> createAddress(@RequestBody AddressDTO addressDTO) {
         Address createdAddress = addressService.saveAddress(addressDTO);
         return ResponseEntity.ok(createdAddress);
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<Address> updateAddress(@PathVariable Long id, @RequestBody AddressUpdateDTO addressUpdateDTO) {
         addressUpdateDTO.setId(id);
         Address updatedAddress = addressService.updateAddress(addressUpdateDTO);
         return ResponseEntity.ok(updatedAddress);
     }
-
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAddress(@PathVariable Long id) {

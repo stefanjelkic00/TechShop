@@ -6,7 +6,6 @@ import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import lombok.*;
 
 @Document(indexName = "products")
@@ -25,8 +24,8 @@ public class ProductDocument {
     @Field(type = FieldType.Text)
     private String description;
 
-    @Field(type = FieldType.Float)
-    private Float price; // Promenjeno sa BigDecimal na Float
+    @Field(type = FieldType.Double) 
+    private Double price;
 
     @Field(type = FieldType.Integer)
     private Integer stockQuantity;

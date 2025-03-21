@@ -1,6 +1,8 @@
 package com.techshop.model;
-import com.techshop.enums.OrderStatus;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.techshop.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,6 +25,7 @@ public class Order {
 
     @ManyToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JsonBackReference
     private User user;
 
     @Column(nullable = false)
@@ -40,8 +43,7 @@ public class Order {
     @Builder.Default
     private Date createdAt = new Date();
 
-
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<OrderItem> orderItems;
-
 }

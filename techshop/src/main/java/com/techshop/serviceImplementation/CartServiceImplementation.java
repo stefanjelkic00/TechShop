@@ -9,6 +9,8 @@ import com.techshop.repository.UserRepository;
 import com.techshop.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.Collections;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -46,7 +48,7 @@ public class CartServiceImplementation implements CartService {
                 cart.getUser().getId(),
                 cart.getCartItems().stream()
                     .map(item -> new CartItemDTO(
-                        item.getId(), // Dodajemo id
+                        item.getId(),
                         item.getCart().getId(),
                         item.getProduct().getId(),
                         item.getQuantity()
@@ -54,7 +56,7 @@ public class CartServiceImplementation implements CartService {
                     .collect(Collectors.toList())
             );
         } else {
-            return new CartDTO(null, userId, null);
+            return new CartDTO(null, userId, Collections.emptyList()); // Vraća prazan niz umesto null
         }
     }
 

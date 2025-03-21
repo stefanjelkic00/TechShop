@@ -5,10 +5,11 @@ import com.techshop.dto.ProductDiscountDTO;
 import com.techshop.dto.ProductUpdateDTO;
 import com.techshop.model.Product;
 import com.techshop.service.ProductService;
-import org.springframework.http.HttpStatus; 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,7 @@ public class ProductController {
         List<ProductDTO> products = productService.getAllProducts()
             .stream()
             .map(product -> new ProductDTO(
+                product.getId(),
                 product.getName(),
                 product.getDescription(),
                 product.getPrice(),
@@ -42,6 +44,7 @@ public class ProductController {
     public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {
         return productService.getProductById(id)
             .map(product -> new ProductDTO(
+                product.getId(),
                 product.getName(),
                 product.getDescription(),
                 product.getPrice(),
@@ -54,8 +57,16 @@ public class ProductController {
     }
 
     @GetMapping("/discounted/{userId}")
-    public ResponseEntity<List<ProductDiscountDTO>> getProductsWithDiscount(@PathVariable Long userId) {
-        return ResponseEntity.ok(productService.getProductsWithDiscount(userId));
+    public ResponseEntity<List<ProductDiscountDTO>> getProductsWithDiscount(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortOrder,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice) {
+        List<ProductDiscountDTO> discountedProducts = productService.getProductsWithDiscount(userId, query, category, sortBy, sortOrder, minPrice, maxPrice);
+        return ResponseEntity.ok(discountedProducts);
     }
     
     @PostMapping("/filter")
@@ -63,6 +74,7 @@ public class ProductController {
         List<ProductDTO> products = productService.getFilteredProducts(productFilter)
             .stream()
             .map(product -> new ProductDTO(
+                product.getId(),
                 product.getName(),
                 product.getDescription(),
                 product.getPrice(),

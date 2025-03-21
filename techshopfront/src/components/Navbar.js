@@ -6,9 +6,9 @@ import { jwtDecode } from "jwt-decode";
 
 function NavigationBar() {
   const [user, setUser] = useState(null);
-  const [showCartDropdown, setShowCartDropdown] = useState(false);
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const loadUserFromToken = () => {
     const token = localStorage.getItem("token");
@@ -16,12 +16,18 @@ function NavigationBar() {
       try {
         const decodedToken = jwtDecode(token);
         console.log("Dekodirani token:", decodedToken);
-        setUser({
+        const userData = {
           id: decodedToken.id,
           firstName: decodedToken.firstName,
           lastName: decodedToken.lastName,
           customerType: decodedToken.customerType,
-        });
+          roles: decodedToken.roles || [],
+        };
+        setUser(userData);
+        // IZMENA: Proveravamo "ROLE_ADMIN" umesto "ADMIN"
+        const adminStatus = Array.isArray(decodedToken.roles) && decodedToken.roles.includes("ROLE_ADMIN");
+        setIsAdmin(adminStatus);
+        console.log("isAdmin set to:", adminStatus, "Roles:", decodedToken.roles || "not found");
         return decodedToken.id;
       } catch (error) {
         console.error("Greška pri dekodiranju tokena:", error);
@@ -33,7 +39,6 @@ function NavigationBar() {
 
   const fetchCartItems = async (userId) => {
     if (!userId) return;
-
     try {
       const cartResponse = await fetch(`http://localhost:8080/api/carts/user/${userId}`, {
         headers: {
@@ -53,7 +58,6 @@ function NavigationBar() {
 
   useEffect(() => {
     const userId = loadUserFromToken();
-
     if (userId) {
       fetchCartItems(userId);
     }
@@ -78,7 +82,11 @@ function NavigationBar() {
     localStorage.removeItem("token");
     setUser(null);
     setCartItems([]);
+    setIsAdmin(false);
     navigate("/");
+
+    // Emituj događaj za osvežavanje proizvoda na HomePage
+    window.dispatchEvent(new CustomEvent("logout"));
   };
 
   const buttonStyle = {
@@ -86,21 +94,25 @@ function NavigationBar() {
     color: "#fff",
     fontWeight: "normal",
     textDecoration: "none",
-    padding: "6px 12px",
+    padding: "4px 8px",
     borderRadius: "8px",
     userSelect: "none",
     display: "flex",
     alignItems: "center",
-    width: "120px",
     justifyContent: "center",
-    position: "relative",
+    width: "120px",
+    minWidth: "120px",
+    minHeight: "30px",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+    overflow: "hidden",
   };
 
   const profileButtonStyle = {
     ...buttonStyle,
     width: "auto",
     maxWidth: "200px",
-    padding: "6px 12px",
+    padding: "4px 8px",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -123,35 +135,40 @@ function NavigationBar() {
           }
           .nav-button {
             transition: background-color 0.3s ease;
+            margin-left: 5px;
+            width: 120px;
+            min-width: 120px;
+            min-height: 30px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: "hidden";
+          }
+          .nav-button.with-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+          }
+          .nav-button.with-icon svg {
+            margin-right: 3px;
+            flex-shrink: 0;
           }
           .user-nav {
             display: flex;
             flex-direction: row;
-            align-items: "center",
+            align-items: center;
             gap: 10px;
           }
-          .cart-dropdown {
-            position: absolute;
-            top: 60px;
-            right: 10px;
-            background-color: #ffffff !important;
-            color: #000;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            padding: 10px;
-            min-width: 220px;
-            z-index: 1050;
-          }
-          .cart-dropdown-item {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-            color: #000;
-          }
-          .cart-dropdown-item:last-child {
-            border-bottom: none;
+          .admin-nav {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
           }
           .navbar-container {
-            overflow: hidden;
+            overflow: visible;
           }
         `}
       </style>
@@ -187,48 +204,39 @@ function NavigationBar() {
         <div style={{ flex: "1" }}></div>
 
         {user ? (
-          <Nav className="d-flex align-items-center user-nav" style={{ marginRight: "20px" }}>
-            <Nav.Link as={Link} to="/profile" className="nav-button" style={profileButtonStyle}>
-              {user.firstName} {user.lastName} | {user.customerType}
-            </Nav.Link>
-
-            <Nav.Link as={Link} to="/orders" className="nav-button" style={buttonStyle}>
-              <FaClipboardList size={22} style={{ marginRight: "5px", verticalAlign: "middle" }} />
-              Porudžbine
-            </Nav.Link>
-
-            <div
-              style={{ position: "relative" }}
-              onMouseEnter={() => setShowCartDropdown(true)}
-              onMouseLeave={() => setShowCartDropdown(false)}
-            >
-              <Nav.Link as={Link} to="/cart" className="nav-button" style={buttonStyle}>
-                <FaShoppingCart size={22} style={{ verticalAlign: "middle", color: "#fff" }} />
+          <>
+            {isAdmin && (
+              <Nav className="d-flex align-items-center admin-nav" style={{ marginRight: "20px" }}>
+                <Nav.Link as={Link} to="/admin/users" className="nav-button" style={buttonStyle}>
+                  Korisnici
+                </Nav.Link>
+                <Nav.Link as={Link} to="/admin/products" className="nav-button" style={buttonStyle}>
+                  Proizvodi
+                </Nav.Link>
+                <Nav.Link as={Link} to="/admin/orders" className="nav-button" style={buttonStyle}>
+                  Porudžbine Kor.
+                </Nav.Link>
+              </Nav>
+            )}
+            <Nav className="d-flex align-items-center user-nav" style={{ marginRight: "20px" }}>
+              <Nav.Link as={Link} to="/profile" className="nav-button" style={profileButtonStyle}>
+                {user.firstName} {user.lastName} | {user.customerType}
               </Nav.Link>
-              {showCartDropdown && (
-                <div className="cart-dropdown">
-                  {cartItems.length > 0 ? (
-                    <>
-                      {cartItems.map((item) => (
-                        <div key={item.id} className="cart-dropdown-item">
-                          {item.product.name} - {item.product.price} RSD (x{item.quantity})
-                        </div>
-                      ))}
-                      <Link to="/cart" className="btn btn-primary w-100 mt-2">
-                        Nastavi
-                      </Link>
-                    </>
-                  ) : (
-                    <div>Nema stavki u korpi</div>
-                  )}
-                </div>
-              )}
-            </div>
 
-            <Nav.Link onClick={handleLogout} className="nav-button" style={buttonStyle}>
-              Odjava
-            </Nav.Link>
-          </Nav>
+              <Nav.Link as={Link} to="/orders" className="nav-button with-icon" style={buttonStyle}>
+                <FaClipboardList size={18} style={{ marginRight: "3px", verticalAlign: "middle" }} />
+                Porudžbine
+              </Nav.Link>
+
+              <Nav.Link as={Link} to="/cart" className="nav-button with-icon" style={buttonStyle}>
+                <FaShoppingCart size={18} style={{ marginRight: "3px", verticalAlign: "middle", color: "#fff" }} />
+              </Nav.Link>
+
+              <Nav.Link onClick={handleLogout} className="nav-button" style={buttonStyle}>
+                Odjava
+              </Nav.Link>
+            </Nav>
+          </>
         ) : (
           <Nav className="d-flex align-items-center user-nav" style={{ marginRight: "20px" }}>
             <Nav.Link as={Link} to="/login" className="nav-button" style={buttonStyle}>

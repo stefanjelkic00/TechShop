@@ -50,50 +50,49 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        AuthenticationFilter authFilter = new AuthenticationFilter(authenticationManager(authenticationConfiguration), userRepository);
-        authFilter.setFilterProcessesUrl("/api/users/login");
-
         System.out.println("✅ Spring Security konfiguracija učitana!");
-        System.out.println("✅ Dozvoljen javni pristup za: /api/elasticsearch/**, /api/users/login/**, /api/users/register, /api/products/**, /api/categories/**, /api/sync/**");
-        System.out.println("✅ Dozvoljen pristup za autentifikovane korisnike: /api/carts/**, /api/cart-items/**");
+        System.out.println("✅ Dozvoljen javni pristup za: /api/elasticsearch/**, /api/users/login/**, /api/users/register, /api/users/verify, /api/products/**, /api/categories/**, /api/sync/**");
+        System.out.println("✅ Dozvoljen pristup za autentifikovane korisnike za ostale rute");
 
-        return httpSecurity
-                .cors(Customizer.withDefaults())
+        // Kreiranje AuthenticationFilter-a
+        AuthenticationFilter authenticationFilter = new AuthenticationFilter(authenticationManager(), userRepository);
+        authenticationFilter.setFilterProcessesUrl("/api/users/login");
+
+        httpSecurity
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> {
-                    System.out.println("🔍 Primena pravila za zahteve...");
-                    auth
-                        .requestMatchers("/api/users/login/**", "/api/users/register").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/products/**", "/api/categories/**").permitAll()
-                        .requestMatchers("/api/elasticsearch/**").permitAll()
-                        .requestMatchers("/api/elasticsearch/products/**").permitAll()
-                        .requestMatchers("/api/elasticsearch/categories").permitAll()
-                        .requestMatchers("/api/sync/**").permitAll()
-                        // Dozvoljavamo pristup autentifikovanim korisnicima
-                        .requestMatchers("/api/carts/**", "/api/cart-items/**").authenticated()
-                        .requestMatchers("/admin/**").hasAuthority("ADMIN")
-                        .anyRequest().authenticated();
-                })
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilter(authFilter)
-                .addFilterBefore(new AuthorizationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .build();
+                .cors(Customizer.withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/api/elasticsearch/**",
+                                "/api/users/login/**",
+                                "/api/users/register",
+                                "/api/users/verify", // Dodajemo /api/users/verify u javne rute
+                                "/api/products/**",
+                                "/api/categories/**",
+                                "/api/sync/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .authenticationProvider(daoAuthenticationProvider())
+                .addFilter(authenticationFilter)
+                .addFilterBefore(new AuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        return httpSecurity.build();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager() throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8001"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8000", "http://localhost:8001"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setAllowCredentials(true); // Promenjeno na true jer koristimo autentifikaciju
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

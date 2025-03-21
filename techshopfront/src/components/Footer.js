@@ -33,7 +33,7 @@ function Footer() {
               O Nama
             </h6>
             <p style={{ fontSize: "12px", lineHeight: "1.4", margin: 0, textAlign: "center" }}>
-              TechShop - Najbolje cene i brza dostava.
+              TechShop - Najbolje cene i brza dostava unutar Srbije,Bosne i Hercegovine i Hrvatske.
             </p>
           </Col>
 
@@ -87,7 +87,7 @@ function Footer() {
             </h6>
             <div style={{ fontSize: "12px", textAlign: "center" }}>
               <p style={{ margin: "0 0 4px" }}>
-                Email: <a href="mailto:support@techshop.com" style={{ color: "white", textDecoration: "underline" }}>support@techshop.com</a>
+                Email: <a href="mailto:support@techshop.com" style={{ color: "white", textDecoration: "underline" }}>techshopsrb@yahoo.com</a>
               </p>
               <p style={{ margin: "0 0 4px" }}>Tel: +381 11 1234 567</p>
               <p style={{ margin: "0 0 4px" }}>Radno vreme: Pon-Pet 9-17h</p>

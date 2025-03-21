@@ -21,5 +21,7 @@ public class ProductDiscountDTO {
     private BigDecimal discountedPrice;
     private String imageUrl;
     private Category category;
+    private int stockQuantity; // Dodato polje
+
 }
 

@@ -16,7 +16,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        // IZMENA: Normalizacija email-a na mala slova
+        User user = userRepository.findByEmail(email.toLowerCase())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
         System.out.println("✅ Loading user: " + user.getEmail());
@@ -25,9 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
                 .password(user.getPassword())
-                .authorities(user.getRole().name()) // Uklanjamo "ROLE_"
+                .authorities("ROLE_" + user.getRole().name()) // "ROLE_" prefiks
                 .build();
-
-
     }
 }

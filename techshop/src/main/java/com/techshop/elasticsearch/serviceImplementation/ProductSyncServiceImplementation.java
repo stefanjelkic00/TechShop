@@ -32,16 +32,22 @@ public class ProductSyncServiceImplementation implements ProductSyncService {
         productElasticsearchRepository.saveAll(productDocuments);
     }
 
+    @Override
     public ProductDocument convertToDocument(Product product) {
-        return ProductDocument.builder()
-                .id(product.getId().toString())
-                .name(product.getName())
-                .description(product.getDescription())
-                .price(product.getPrice().floatValue()) // Konverzija BigDecimal u Float
-                .stockQuantity(product.getStockQuantity())
-                .category(product.getCategory().toString()) // Enum konvertujemo u String
-                .imageUrl(product.getImageUrl())
-                .createdAt(product.getCreatedAt().toLocalDate()) // Konvertuj LocalDateTime u LocalDate
-                .build();
+        ProductDocument document = new ProductDocument();
+        document.setId(product.getId().toString());
+        document.setName(product.getName());
+        document.setDescription(product.getDescription());
+        document.setPrice(product.getPrice().doubleValue()); // Konverzija BigDecimal u Double
+        document.setStockQuantity(product.getStockQuantity());
+        document.setImageUrl(product.getImageUrl());
+        document.setCategory(product.getCategory().name());
+        return document;
+    }
+
+    // Dodajemo metodu za ažuriranje pojedinačnog proizvoda u Elasticsearch-u
+    public void updateProductInElasticsearch(Product product) {
+        ProductDocument document = convertToDocument(product);
+        productElasticsearchRepository.save(document);
     }
 }

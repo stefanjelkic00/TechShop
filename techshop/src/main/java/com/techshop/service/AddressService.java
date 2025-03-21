@@ -3,7 +3,6 @@ package com.techshop.service;
 import com.techshop.dto.AddressDTO;
 import com.techshop.dto.AddressUpdateDTO;
 import com.techshop.model.Address;
-import com.techshop.model.Order;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,9 +13,6 @@ public interface AddressService {
     Address saveAddress(AddressDTO addressDTO);
     Address updateAddress(AddressUpdateDTO addressUpdateDTO);
     void deleteAddress(Long id);
-    
-    
-    void sendOrderConfirmation(String to, Order order);
 
     
 }

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -79,7 +80,6 @@ public class ProductServiceImplementation implements ProductService {
         return savedProduct;
     }
 
-
     @Override
     public Product updateProduct(ProductUpdateDTO productUpdateDTO) {
         Optional<Product> existingProduct = productRepository.findById(productUpdateDTO.getId());
@@ -110,8 +110,6 @@ public class ProductServiceImplementation implements ProductService {
         }
     }
 
-
-
     @Override
     public void deleteProduct(Long id) {
         Optional<Product> existingProduct = productRepository.findById(id);
@@ -126,26 +124,62 @@ public class ProductServiceImplementation implements ProductService {
         }
     }
 
-    
     @Override
-    public List<ProductDiscountDTO> getProductsWithDiscount(Long userId) {
+    public List<ProductDiscountDTO> getProductsWithDiscount(Long userId, String searchQuery, String category, String sortBy, String sortOrder, BigDecimal minPrice, BigDecimal maxPrice) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<Product> products = productRepository.findAll();
 
-        return products.stream().map(product -> {
-            BigDecimal discount = getDiscountForUser(user);
-            BigDecimal discountedPrice = product.getPrice().subtract(product.getPrice().multiply(discount));
+        // Filtriranje
+        if (searchQuery != null && !searchQuery.isEmpty()) {
+            products = products.stream()
+                .filter(p -> p.getName().toLowerCase().contains(searchQuery.toLowerCase()))
+                .collect(Collectors.toList());
+        }
+        if (category != null && !category.isEmpty()) {
+            products = products.stream()
+                .filter(p -> p.getCategory().name().equalsIgnoreCase(category))
+                .collect(Collectors.toList());
+        }
+        if (minPrice != null) {
+            products = products.stream()
+                .filter(p -> p.getPrice().compareTo(minPrice) >= 0)
+                .collect(Collectors.toList());
+        }
+        if (maxPrice != null) {
+            products = products.stream()
+                .filter(p -> p.getPrice().compareTo(maxPrice) <= 0)
+                .collect(Collectors.toList());
+        }
 
+        // Sortiranje
+        if (sortBy != null && !sortBy.isEmpty()) {
+            Comparator<Product> comparator;
+            switch (sortBy.toLowerCase()) {
+                case "price":
+                    comparator = Comparator.comparing(Product::getPrice);
+                    break;
+                case "name":
+                    comparator = Comparator.comparing(Product::getName);
+                    break;
+                default:
+                    comparator = Comparator.comparing(Product::getId);
+            }
+            if ("desc".equalsIgnoreCase(sortOrder)) {
+                comparator = comparator.reversed();
+            }
+            products.sort(comparator);
+        }
+
+        // Primena popusta i konverzija u DTO
+        BigDecimal discount = getDiscountForUser(user);
+        return products.stream().map(product -> {
+            BigDecimal discountedPrice = product.getPrice().subtract(product.getPrice().multiply(discount));
             return new ProductDiscountDTO(product.getId(), product.getName(), product.getDescription(),
-                    product.getPrice(), discountedPrice, product.getImageUrl(), product.getCategory());
+                    product.getPrice(), discountedPrice, product.getImageUrl(), product.getCategory(), product.getStockQuantity());
         }).collect(Collectors.toList());
     }
-    
-    
-
-
 
     private BigDecimal getDiscountForUser(User user) {
         switch (user.getCustomerType()) {
@@ -159,7 +193,7 @@ public class ProductServiceImplementation implements ProductService {
                 return BigDecimal.ZERO; // Nema popusta za REGULAR korisnike
         }
     }
-    
+
     @Override
     public List<Product> getFilteredProducts(ProductDTO productFilter) {
         // Početni upit - svi proizvodi
@@ -189,16 +223,10 @@ public class ProductServiceImplementation implements ProductService {
         return products;
     }
     
-    
     @Override
     public List<String> getAllCategories() {
         return Arrays.stream(Category.values())
                      .map(Enum::name)
                      .collect(Collectors.toList());
     }
-
-
-    
-    
-    
 }

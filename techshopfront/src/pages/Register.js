@@ -5,7 +5,7 @@ import { Button } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import axios from "axios";
+import { registerUser } from "../services/api";
 import { motion } from "framer-motion";
 import { FaUserPlus } from "react-icons/fa";
 
@@ -39,40 +39,29 @@ function Register() {
         `}
       </style>
       <motion.div
-        className="card shadow-lg border-0 p-4" // Povećan padding sa p-3 na p-4 za veći unutrašnji razmak
+        className="card shadow-lg border-0 p-3"
         style={{
           maxWidth: "500px",
           width: "100%",
-          minHeight: "600px", // Podesio na 600px da se uklopi sa više polja
+          minHeight: "400px",
           borderRadius: "15px",
           backgroundColor: "rgba(51, 51, 51, 0.95)",
           boxShadow: "0 8px 20px rgba(0, 0, 0, 0.5)",
           zIndex: 1,
           margin: "0 auto",
-          marginTop: "80px",
+          marginTop: "60px",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center", // Centriranje sadržaja vertikalno
+          justifyContent: "flex-start",
           alignItems: "center",
-          padding: "20px", // Dodat unutrašnji padding umesto samo paddingTop
+          paddingTop: "20px",
         }}
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <img
-          src="/ts5.png"
-          alt="Tech Shop Logo"
-          style={{
-            width: "100px",
-            height: "100px",
-            marginBottom: "20px", // Održan razmak od 20px ispod loga
-            objectFit: "cover",
-            borderRadius: "50%",
-          }}
-        />
         <h6
-          className="text-center mb-3" // Smanjen razmak ispod naslova na mb-3
+          className="text-center mb-4"
           style={{
             fontWeight: "700",
             textTransform: "uppercase",
@@ -83,45 +72,33 @@ function Register() {
         >
           <FaUserPlus style={{ marginRight: "10px", fontSize: "18px" }} /> Registracija
         </h6>
+
         <Formik
           initialValues={{ firstName: "", lastName: "", email: "", password: "" }}
           validationSchema={Yup.object({
-            firstName: Yup.string()
-              .required("Ime je obavezno")
-              .min(2, "Mora imati najmanje 2 karaktera"),
-            lastName: Yup.string()
-              .required("Prezime je obavezno")
-              .min(2, "Mora imati najmanje 2 karaktera"),
+            firstName: Yup.string().required("Ime je obavezno"),
+            lastName: Yup.string().required("Prezime je obavezno"),
             email: Yup.string()
-              .email("Neispravan email format")
+              .email("Neispravan email")
               .required("Email je obavezan"),
             password: Yup.string()
               .min(6, "Lozinka mora imati najmanje 6 karaktera")
               .required("Lozinka je obavezna"),
           })}
-          onSubmit={async (values, { setSubmitting, resetForm }) => {
+          onSubmit={async (values, { setSubmitting }) => {
             try {
-              const response = await axios.post(
-                "http://localhost:8001/api/users/register",
-                values
-              );
-
-              if (response.status === 200 || response.status === 201) {
-                toast.success("Registracija uspešna! Sada se možete prijaviti.");
-                resetForm();
-                navigate("/login");
-              } else {
-                throw new Error("Neočekivan odgovor od servera");
-              }
+              await registerUser(values);
+              toast.success("Registracija je započeta! Proverite vaš email za potvrdu.");
+              navigate("/login");
             } catch (error) {
-              toast.error("Registracija nije uspela. Pokušajte ponovo.");
+              toast.error(error.response?.data?.message || "Greška pri registraciji. Pokušajte ponovo.");
             }
             setSubmitting(false);
           }}
         >
-          {({ isSubmitting }) => (
+          {(props) => (
             <Form className="d-flex flex-column align-items-center w-100">
-              <div className="w-75 text-center" style={{ marginBottom: "15px" }}>
+              <div className="w-75 text-center" style={{ marginBottom: "20px" }}>
                 <Field
                   type="text"
                   name="firstName"
@@ -132,15 +109,21 @@ function Register() {
                     border: "1px solid #555",
                     backgroundColor: "#fff",
                     color: "#333",
+                    transition: "border-color 0.3s ease",
                     width: "100%",
                     padding: "10px",
                     fontSize: "14px",
                   }}
                 />
-                <ErrorMessage name="firstName" component="div" className="alert alert-danger text-center py-1 mt-2" />
+                <ErrorMessage
+                  name="firstName"
+                  component="div"
+                  className="alert alert-danger text-center py-1 mt-2"
+                  style={{ borderRadius: "8px", fontSize: "0.9rem" }}
+                />
               </div>
 
-              <div className="w-75 text-center" style={{ marginBottom: "15px" }}>
+              <div className="w-75 text-center" style={{ marginBottom: "20px" }}>
                 <Field
                   type="text"
                   name="lastName"
@@ -151,15 +134,21 @@ function Register() {
                     border: "1px solid #555",
                     backgroundColor: "#fff",
                     color: "#333",
+                    transition: "border-color 0.3s ease",
                     width: "100%",
                     padding: "10px",
                     fontSize: "14px",
                   }}
                 />
-                <ErrorMessage name="lastName" component="div" className="alert alert-danger text-center py-1 mt-2" />
+                <ErrorMessage
+                  name="lastName"
+                  component="div"
+                  className="alert alert-danger text-center py-1 mt-2"
+                  style={{ borderRadius: "8px", fontSize: "0.9rem" }}
+                />
               </div>
 
-              <div className="w-75 text-center" style={{ marginBottom: "15px" }}>
+              <div className="w-75 text-center" style={{ marginBottom: "20px" }}>
                 <Field
                   type="email"
                   name="email"
@@ -170,15 +159,21 @@ function Register() {
                     border: "1px solid #555",
                     backgroundColor: "#fff",
                     color: "#333",
+                    transition: "border-color 0.3s ease",
                     width: "100%",
                     padding: "10px",
                     fontSize: "14px",
                   }}
                 />
-                <ErrorMessage name="email" component="div" className="alert alert-danger text-center py-1 mt-2" />
+                <ErrorMessage
+                  name="email"
+                  component="div"
+                  className="alert alert-danger text-center py-1 mt-2"
+                  style={{ borderRadius: "8px", fontSize: "0.9rem" }}
+                />
               </div>
 
-              <div className="w-75 text-center" style={{ marginBottom: "15px" }}>
+              <div className="w-75 text-center" style={{ marginBottom: "20px" }}>
                 <Field
                   type="password"
                   name="password"
@@ -189,12 +184,18 @@ function Register() {
                     border: "1px solid #555",
                     backgroundColor: "#fff",
                     color: "#333",
+                    transition: "border-color 0.3s ease",
                     width: "100%",
                     padding: "10px",
                     fontSize: "14px",
                   }}
                 />
-                <ErrorMessage name="password" component="div" className="alert alert-danger text-center py-1 mt-2" />
+                <ErrorMessage
+                  name="password"
+                  component="div"
+                  className="alert alert-danger text-center py-1 mt-2"
+                  style={{ borderRadius: "8px", fontSize: "0.9rem" }}
+                />
               </div>
 
               <motion.div
@@ -205,14 +206,14 @@ function Register() {
                   justifyContent: "center",
                   width: "50%",
                   margin: "0 auto",
-                  marginBottom: "20px", // Održan razmak od 20px do donjeg dela
+                  marginBottom: "20px",
                 }}
               >
                 <Button
                   type="submit"
                   variant="primary"
                   className="w-100"
-                  disabled={isSubmitting}
+                  disabled={props.isSubmitting}
                   style={{
                     borderRadius: "8px",
                     padding: "10px",
@@ -223,14 +224,14 @@ function Register() {
                     fontSize: "14px",
                   }}
                 >
-                  {isSubmitting ? "Registracija..." : "Registruj se"}
+                  {props.isSubmitting ? "Registracija..." : "Registruj se"}
                 </Button>
               </motion.div>
             </Form>
           )}
         </Formik>
         <div
-          className="text-center mt-3" // Promenjeno sa mt-auto na mt-3 za ravnomerni razmak
+          className="text-center mt-auto"
           style={{
             display: "flex",
             justifyContent: "center",

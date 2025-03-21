@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Container, Row, Col, Card, Button, Spinner, FormControl } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { getProducts, getCategories, autocompleteSearch, getCartByUserId } from "../services/api";
+import { getProductsWithDiscount, getProducts, getCategories, autocompleteSearch, getCartByUserId, getUserByEmail } from "../services/api";
 import { CartPlus } from "react-bootstrap-icons";
 import { jwtDecode } from "jwt-decode";
 
@@ -23,18 +23,39 @@ function HomePage() {
 
   const categoryDisplayMap = {
     LAPTOP: "Laptop",
-    PHONE: "Phone",
+    PHONE: "Telefon",
     GAMING_EQUIPMENT: "Gaming oprema",
     SMART_DEVICES: "Pametni uređaji",
   };
 
   const validateAndProcessProducts = (data) => {
     if (!Array.isArray(data)) return [];
-    return data.map((item) => ({
-      ...item,
-      price: typeof item.price === "number" ? item.price : parseFloat(item.price) || 0,
-      imageUrl: item.imageUrl || "https://via.placeholder.com/300",
-    })).filter((item) => item.name && typeof item.price === "number");
+
+    return data.map((item) => {
+      if (item.originalPrice !== undefined && item.discountedPrice !== undefined) {
+        const originalPrice = typeof item.originalPrice === "number" ? item.originalPrice : parseFloat(item.originalPrice) || 0;
+        const discountedPrice = typeof item.discountedPrice === "number" ? item.discountedPrice : parseFloat(item.discountedPrice) || originalPrice;
+        const stockQuantity = typeof item.stockQuantity === "number" ? item.stockQuantity : parseInt(item.stockQuantity) || 0;
+        console.log(`Processing product ${item.name}: originalPrice=${originalPrice}, discountedPrice=${discountedPrice}, stockQuantity=${stockQuantity}`);
+        return {
+          ...item,
+          originalPrice,
+          discountedPrice,
+          stockQuantity,
+          imageUrl: item.imageUrl || "https://via.placeholder.com/300",
+        };
+      }
+      const price = typeof item.price === "number" ? item.price : parseFloat(item.price) || 0;
+      const stockQuantity = typeof item.stockQuantity === "number" ? item.stockQuantity : parseInt(item.stockQuantity) || 0;
+      console.log(`Processing product ${item.name}: price=${price}, stockQuantity=${stockQuantity}`);
+      return {
+        ...item,
+        originalPrice: price,
+        discountedPrice: price,
+        stockQuantity,
+        imageUrl: item.imageUrl || "https://via.placeholder.com/300",
+      };
+    }).filter((item) => item.name && typeof item.originalPrice === "number");
   };
 
   useEffect(() => {
@@ -46,12 +67,33 @@ function HomePage() {
 
         console.log("Filtriranje sa:", { searchQuery, category, sort, minPriceValue, maxPriceValue });
 
-        const fetchedProducts = await getProducts(searchQuery, category, sort, minPriceValue, maxPriceValue);
+        const token = localStorage.getItem("token");
+        let fetchedProducts;
+        if (token) {
+          const decodedToken = jwtDecode(token);
+          const email = decodedToken.sub;
+          console.log("Dekodiran email:", email);
+
+          const userData = await getUserByEmail(email);
+          const userId = userData && userData.id ? userData.id : null;
+          console.log("Pronađen userId:", userId);
+
+          if (!userId) {
+            throw new Error("Neispravan userId");
+          }
+
+          fetchedProducts = await getProductsWithDiscount(userId, searchQuery, category, sort, minPriceValue, maxPriceValue);
+          console.log("Discounted products fetched:", fetchedProducts);
+        } else {
+          fetchedProducts = await getProducts(searchQuery, category, sort, minPriceValue, maxPriceValue);
+          console.log("Regular products fetched:", fetchedProducts);
+        }
+
         if (!fetchedProducts || !Array.isArray(fetchedProducts)) {
           console.error("Podaci iz Elasticsearch-a nisu validni niz:", fetchedProducts);
           const dummyProducts = [
-            { id: 1, name: "Laptop HP", price: 999.99, category: "LAPTOP", imageUrl: "https://via.placeholder.com/300" },
-            { id: 2, name: "Telefon Samsung", price: 599.99, category: "PHONE", imageUrl: "https://via.placeholder.com/300" },
+            { id: 1, name: "Laptop HP", originalPrice: 999.99, discountedPrice: 999.99, stockQuantity: 10, category: "LAPTOP", imageUrl: "https://via.placeholder.com/300" },
+            { id: 2, name: "Telefon Samsung", originalPrice: 599.99, discountedPrice: 599.99, stockQuantity: 0, category: "PHONE", imageUrl: "https://via.placeholder.com/300" },
           ];
           const processedProducts = validateAndProcessProducts(dummyProducts);
           setProducts(processedProducts);
@@ -69,8 +111,8 @@ function HomePage() {
       } catch (error) {
         console.error("Greška pri preuzimanju podataka:", error);
         const dummyProducts = [
-          { id: 1, name: "Laptop HP", price: 999.99, category: "LAPTOP", imageUrl: "https://via.placeholder.com/300" },
-          { id: 2, name: "Telefon Samsung", price: 599.99, category: "PHONE", imageUrl: "https://via.placeholder.com/300" },
+          { id: 1, name: "Laptop HP", originalPrice: 999.99, discountedPrice: 999.99, stockQuantity: 10, category: "LAPTOP", imageUrl: "https://via.placeholder.com/300" },
+          { id: 2, name: "Telefon Samsung", originalPrice: 599.99, discountedPrice: 599.99, stockQuantity: 0, category: "PHONE", imageUrl: "https://via.placeholder.com/300" },
         ];
         const processedProducts = validateAndProcessProducts(dummyProducts);
         setProducts(processedProducts);
@@ -79,7 +121,20 @@ function HomePage() {
         setLoading(false);
       }
     };
+
     fetchData();
+
+    // Osluskivanje događaja izlogovanja
+    const handleLogoutEvent = () => {
+      console.log("Detektovan logout, osvežavanje proizvoda...");
+      fetchData(); // Ponovo učitaj proizvode bez popusta
+    };
+
+    window.addEventListener("logout", handleLogoutEvent);
+
+    return () => {
+      window.removeEventListener("logout", handleLogoutEvent);
+    };
   }, [category, sort, minPrice, maxPrice, searchQuery]);
 
   const handleToggleDropdown = (dropdownId) => {
@@ -135,9 +190,14 @@ function HomePage() {
   };
 
   const addToCart = async (product) => {
+    // Proveravamo da li je proizvod na stanju pre dodavanja u korpu
+    if (product.stockQuantity <= 0) {
+      alert("Ovaj proizvod trenutno nije na stanju.");
+      return;
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
-      // Redirektuj na login sa informacijom o pokušaju dodavanja u korpu
       navigate("/login", { state: { fromCart: true } });
       return;
     }
@@ -147,21 +207,7 @@ function HomePage() {
       const email = decodedToken.sub;
       console.log("Dekodiran email iz tokena:", email);
 
-      // Dohvatamo korisnika preko email-a
-      const userResponse = await fetch(`http://localhost:8001/api/users/email/${email}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!userResponse.ok) {
-        throw new Error(`Neuspelo dohvatanje korisnika: ${userResponse.status} - ${userResponse.statusText}`);
-      }
-      const userText = await userResponse.text();
-      let userData;
-      try {
-        userData = JSON.parse(userText);
-      } catch (e) {
-        console.error("Neispravan JSON odgovor od /api/users/email/:", userText);
-        throw new Error("Neispravan odgovor od servera");
-      }
+      const userData = await getUserByEmail(email);
       const userId = userData && userData.id ? userData.id : null;
 
       if (!userId || userId <= 0) {
@@ -169,13 +215,11 @@ function HomePage() {
       }
       console.log("Pronađen userId:", userId);
 
-      // Dohvatamo korpu korisnika
       const cartResponse = await getCartByUserId(userId);
       console.log("Odgovor od getCartByUserId:", cartResponse);
       let cartId = cartResponse.id;
 
       if (!cartId) {
-        // Kreiraj novu korpu ako ne postoji
         const newCartDTO = { userId };
         console.log("Kreiranje nove korpe sa podacima:", newCartDTO);
         const createResponse = await fetch("http://localhost:8001/api/carts", {
@@ -207,7 +251,6 @@ function HomePage() {
         console.log("Nova korpa kreirana sa id:", cartId);
       }
 
-      // Kreiramo DTO za dodavanje u korpu
       const cartItemDTO = {
         cartId: cartId,
         productId: product.id,
@@ -215,7 +258,6 @@ function HomePage() {
       };
       console.log("Dodavanje stavke u korpu sa podacima:", cartItemDTO);
 
-      // Šaljemo zahtev za dodavanje stavke u korpu
       const response = await fetch("http://localhost:8001/api/cart-items", {
         method: "POST",
         headers: {
@@ -227,7 +269,7 @@ function HomePage() {
 
       if (response.ok) {
         console.log(`Proizvod ${product.name} dodat u korpu!`);
-        window.dispatchEvent(new Event("storage")); // Ažuriranje UI-ja
+        window.dispatchEvent(new Event("storage"));
       } else {
         const errorText = await response.text();
         console.error("Greška pri dodavanju u korpu:", {
@@ -258,6 +300,14 @@ function HomePage() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const getDiscountPercentage = (originalPrice, discountedPrice) => {
+    if (!originalPrice || !discountedPrice || originalPrice === 0 || discountedPrice >= originalPrice) return 0;
+    const discount = ((originalPrice - discountedPrice) / originalPrice) * 100;
+    const roundedDiscount = Math.round(discount);
+    console.log(`Discount for originalPrice=${originalPrice}, discountedPrice=${discountedPrice}: ${roundedDiscount}%`);
+    return roundedDiscount;
+  };
 
   return (
     <div style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #444 100%)", minHeight: "100vh", padding: "20px", maxWidth: "1500px", margin: "0 auto", position: "relative", zIndex: 1 }}>
@@ -468,6 +518,7 @@ function HomePage() {
             justify-content: center;
             background: #444;
             overflow: hidden;
+            position: relative;
           }
           .card-image-wrapper img {
             height: 100%;
@@ -510,6 +561,10 @@ function HomePage() {
           .cart-button:hover {
             background: #e03e00;
           }
+          .cart-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+          }
           .cart-icon {
             color: #fff;
             font-size: 1rem;
@@ -547,6 +602,43 @@ function HomePage() {
           }
           .product-list {
             margin-top: 40px;
+          }
+          .discount-circle {
+            width: 40px;
+            height: 40px;
+            background: #ff4500;
+            border-radius: 50%;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            text-align: center;
+            line-height: 1;
+            padding: 0;
+          }
+          .original-price {
+            text-decoration: line-through;
+            color: #888;
+            font-size: 0.9rem;
+            margin-right: 5px;
+          }
+          .discounted-price {
+            font-size: 1.1rem;
+            color: #ff4500;
+            text-shadow: 1px 1px 5px #000;
+          }
+          .out-of-stock {
+            font-size: 1rem;
+            color: #ff0000;
+            font-weight: bold;
+            text-align: center;
+            margin: 0;
           }
           @media (max-width: 575.98px) {
             .techshop-logo {
@@ -611,6 +703,21 @@ function HomePage() {
             .suggestions-dropdown {
               width: 95%;
               max-width: none;
+            }
+            .discount-circle {
+              width: 30px;
+              height: 30px;
+              font-size: 0.55rem;
+              line-height: 1;
+            }
+            .original-price {
+              font-size: 0.8rem;
+            }
+            .discounted-price {
+              font-size: 1rem;
+            }
+            .out-of-stock {
+              font-size: 0.9rem;
             }
           }
         `}
@@ -721,44 +828,67 @@ function HomePage() {
         <div className="product-list">
           <Container>
             <Row className="g-5 debug-row">
-              {products.map((product) => (
-                <Col key={product.id || `product-${Math.random()}`} className="product-col debug-col">
-                  <Container className="product-container">
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                      onClick={() => handleProductClick(product.id)}
-                    >
-                      <Card className="brutal-card shadow-lg border-0">
-                        <div className="card-image-wrapper">
-                          <Card.Img
-                            variant="top"
-                            src={product.imageUrl && product.imageUrl.startsWith("http") ? product.imageUrl : "https://via.placeholder.com/300"}
-                            alt={product.name}
-                            className="img-fluid"
-                          />
-                        </div>
-                        <Card.Body className="text-center d-flex flex-column card-body">
-                          <Card.Title className="brutal-text">{product.name}</Card.Title>
-                          <div className="price-cart-container">
-                            <Card.Text className="brutal-price">${product.price ? product.price.toFixed(2) : "N/A"}</Card.Text>
-                            <Button
-                              className="cart-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addToCart(product);
-                              }}
-                            >
-                              <CartPlus className="cart-icon" />
-                            </Button>
+              {products.map((product) => {
+                const discountPercentage = getDiscountPercentage(product.originalPrice, product.discountedPrice);
+                const hasDiscount = discountPercentage > 0 && product.discountedPrice !== product.originalPrice;
+                const isOutOfStock = product.stockQuantity <= 0;
+
+                return (
+                  <Col key={product.id || `product-${Math.random()}`} className="product-col debug-col">
+                    <Container className="product-container">
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                        onClick={() => handleProductClick(product.id)}
+                      >
+                        <Card className="brutal-card shadow-lg border-0">
+                          <div className="card-image-wrapper">
+                            <Card.Img
+                              variant="top"
+                              src={product.imageUrl && product.imageUrl.startsWith("http") ? product.imageUrl : "https://via.placeholder.com/300"}
+                              alt={product.name}
+                              className="img-fluid"
+                            />
+                            {hasDiscount && !isOutOfStock && (
+                              <div className="discount-circle">
+                                {discountPercentage}% OFF
+                              </div>
+                            )}
                           </div>
-                        </Card.Body>
-                      </Card>
-                    </motion.div>
-                  </Container>
-                </Col>
-              ))}
+                          <Card.Body className="text-center d-flex flex-column card-body">
+                            <Card.Title className="brutal-text">{product.name}</Card.Title>
+                            <div className="price-cart-container">
+                              {isOutOfStock ? (
+                                <span className="out-of-stock">Nema na stanju</span>
+                              ) : (
+                                <div>
+                                  {hasDiscount && (
+                                    <span className="original-price">${product.originalPrice.toFixed(2)}</span>
+                                  )}
+                                  <span className="discounted-price">
+                                    ${product.discountedPrice.toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                              <Button
+                                className="cart-button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToCart(product);
+                                }}
+                                disabled={isOutOfStock}
+                              >
+                                <CartPlus className="cart-icon" />
+                              </Button>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </motion.div>
+                    </Container>
+                  </Col>
+                );
+              })}
             </Row>
           </Container>
         </div>
